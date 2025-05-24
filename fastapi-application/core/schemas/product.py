@@ -1,11 +1,11 @@
-#вроде все
-
 from pydantic import BaseModel
 from pydantic import ConfigDict
 
 
 class ProductBase(BaseModel):
-    producttitle: str
+    title: str
+    description: str
+
 
 
 class ProductCreate(ProductBase):

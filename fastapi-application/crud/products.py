@@ -29,5 +29,5 @@ async def create_product(
     product = Product(**product_create.model_dump())
     session.add(product)
     await session.commit()
-    # await session.refresh(user)
+    # await session.refresh(product)
     return product
