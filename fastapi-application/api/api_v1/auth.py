@@ -10,8 +10,8 @@ from core.security import verify_password, create_access_token, ACCESS_TOKEN_EXP
 from api.api_v1.deps import get_db, get_current_user
 from core.models.user import User
 
-router = APIRouter()
 
+router = APIRouter(tags=["AUTH"])
 
 @router.post("/register", response_model=UserRead)
 async def register(user_create: UserCreate, db: AsyncSession = Depends(get_db)):

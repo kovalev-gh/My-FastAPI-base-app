@@ -8,7 +8,8 @@ from api import router as api_router
 from views import router as views_router
 from create_fastapi_app import create_app
 
-from api.api_v1 import auth
+#from api.api_v1 import auth as auth_router
+from api.api_v1.auth import router as auth_router
 
 
 
@@ -24,8 +25,6 @@ main_app = create_app(
 main_app.include_router(
     api_router,
 )
-
-main_app.include_router(auth.router, prefix="/api/v1/auth", tags=["auth"])
 
 main_app.include_router(
     views_router,
