@@ -1,0 +1,45 @@
+poetry install
+poetry env activate
+source /home/sergeyl/.cache/pypoetry/virtualenvs/non-package-mode-ufyuGeAO-py3.12/bin/activate
+меняю порт  в docker-compose.yml maildev с 8080 на 1080 потому что изначально в docker-compose.yml этот номер порта в двух местах
+меняю порт  в docker-compose.yml pg с 5432 на 5433 потому что у меня постгрес установлен локально и возможно из-за это в логах при выполнении команды docker compose up -d возникает ошибка pg-1       | 2025-05-11 13:54:04.886 UTC [79] FATAL:  role "root" does not exist
+создаю файл .env и копирую в него содержимое .env.template
+в файле .env меняю строку APP_CONFIG__DB__URL=postgresql+asyncpg://user:pwd@localhost:5432/app на APP_CONFIG__DB__URL=postgresql+asyncpg://user:password@pg:5432/shop потому что чат гпт сказал что Вы создаёте базу shop, а подключаетесь к app. Это может вызвать ошибку, если базы app просто нет.
+и в alembic.ini меняю строку подключения на sqlalchemy.url = postgresql+asyncpg://user:password@localhost:5433/shop
+в docker-compose.yml для сервиса pg добавляю
+     healthcheck:
+      test: [ "CMD", "pg_isready", "-U", "user", "-d", "shop" ]
+
+
+
+docker compose up -d
+gunicorn main:main_app --workers 4 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000
+uvicorn main:main_app --reload
+
+
+
+
+
+
+
+
+
+
+docker exec -it имя_контейнера bash                     переходит в оболочку контейнера
+docker exec -it fastapi-base-app-pg-1 bash
+
+psql -U user -d shop                    переходит в конкретную бд под конкретным пользователем
+
+
+
+docker compose down
+docker compose up -d
+docker compose logs
+
+alembic upgrade head
+
+
+docker-compose down
+
+docker-compose up --build
+uvicorn main:main_app --reload

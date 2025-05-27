@@ -8,6 +8,10 @@ from api import router as api_router
 from views import router as views_router
 from create_fastapi_app import create_app
 
+from api.api_v1 import auth
+
+
+
 logging.basicConfig(
     level=settings.logging.log_level_value,
     format=settings.logging.log_format,
@@ -20,6 +24,9 @@ main_app = create_app(
 main_app.include_router(
     api_router,
 )
+
+main_app.include_router(auth.router, prefix="/api/v1/auth", tags=["auth"])
+
 main_app.include_router(
     views_router,
 )

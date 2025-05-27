@@ -1,5 +1,4 @@
-from pydantic import BaseModel
-from pydantic import ConfigDict
+from pydantic import BaseModel, ConfigDict
 
 
 class UserBase(BaseModel):
@@ -7,12 +6,14 @@ class UserBase(BaseModel):
 
 
 class UserCreate(UserBase):
-    pass
+    password: str  # 👈 пароль от пользователя
 
 
 class UserRead(UserBase):
-    model_config = ConfigDict(
-        from_attributes=True,
-    )
-
+    model_config = ConfigDict(from_attributes=True)
     id: int
+
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str

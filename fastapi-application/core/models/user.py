@@ -7,6 +7,7 @@ from .mixins.int_id_pk import IntIdPkMixin
 
 class User(IntIdPkMixin, Base):
     username: Mapped[str] = mapped_column(unique=True)
+    hashed_password: Mapped[str] = mapped_column()
 
     @property
     def email(self) -> str:
