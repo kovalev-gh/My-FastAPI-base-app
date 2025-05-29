@@ -8,6 +8,8 @@ from .users import router as users_router
 
 from .products import router as products_router
 
+from .carts import router as cart_router
+
 router = APIRouter(
     prefix=settings.api.v1.prefix,
 )
@@ -23,3 +25,6 @@ router.include_router(
     auth_router,
     prefix=settings.api.v1.auth,
 )
+
+
+router.include_router(cart_router, prefix="/api/v1")
