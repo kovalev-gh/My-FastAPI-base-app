@@ -15,7 +15,7 @@ from crud.carts import (
     update_cart_quantity
 )
 
-router = APIRouter(prefix="/cart", tags=["Cart"])
+router = APIRouter( tags=["Cart"])
 
 @router.post("/add", response_model=CartItemResponse)
 async def add(

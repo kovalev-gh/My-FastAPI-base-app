@@ -47,6 +47,8 @@ class ApiV1Prefix(BaseModel):
     users: str = "/users"
     products: str = "/products"
     auth: str = "/auth"
+    orders: str = "/orders"
+    carts: str = "/carts"
 
 
 class ApiPrefix(BaseModel):
