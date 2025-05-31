@@ -9,6 +9,10 @@ class ProductBase(BaseModel):
 
 
 class ProductCreate(ProductBase):
+
+    retail_price: str
+    opt_price: str
+    quantity: str
     pass
 
 
