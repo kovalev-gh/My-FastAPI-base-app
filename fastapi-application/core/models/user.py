@@ -8,7 +8,8 @@ class User(IntIdPkMixin, Base):
 
     username: Mapped[str] = mapped_column(String, unique=True, index=True)
     full_name: Mapped[str] = mapped_column(String, nullable=True)
-    email_: Mapped[str] = mapped_column("email", String, unique=True, index=True)
+    email: Mapped[str] = mapped_column(String, unique=True, index=True)
+    phone_number: Mapped[str] = mapped_column(String, nullable=True, index=True)
     hashed_password: Mapped[str] = mapped_column(String)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     is_superuser: Mapped[bool] = mapped_column(Boolean, default=False)
@@ -16,8 +17,3 @@ class User(IntIdPkMixin, Base):
     orders: Mapped[list["Order"]] = relationship(
         back_populates="user", cascade="all, delete-orphan"
     )
-
-    @property
-    def email(self) -> str:
-        # Например, возвращаем сохранённый email (или подставной, если поле пустое)
-        return self.email_ or f"{self.username}@domain.com"

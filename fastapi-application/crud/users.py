@@ -26,7 +26,9 @@ async def get_user_by_username(session: AsyncSession, username: str) -> User | N
 async def create_user(session: AsyncSession, user_create: UserCreate) -> User:
     user = User(
         username=user_create.username,
-        hashed_password=hash_password(user_create.password)
+        hashed_password=hash_password(user_create.password),
+        email=user_create.email,
+        phone_number=user_create.phone_number,
     )
     session.add(user)
     await session.commit()

@@ -15,6 +15,8 @@ async def send_order_notification_email(order: Order):
     body = f"""
 Новый заказ от пользователя: {order.user.username}
 Email: {order.user.email}
+Телефон: {order.user.phone_number}
+Имя: {order.user.full_name}
 
 ID заказа: {order.id}
 Статус: {order.status}
