@@ -4,6 +4,7 @@ from typing import Literal
 from pydantic import AmqpDsn
 from pydantic import BaseModel
 from pydantic import PostgresDsn
+from pydantic import EmailStr
 from pydantic_settings import (
     BaseSettings,
     SettingsConfigDict,
@@ -89,6 +90,12 @@ class Settings(BaseSettings):
     api: ApiPrefix = ApiPrefix()
     taskiq: TaskiqConfig = TaskiqConfig()
     db: DatabaseConfig
+    smtp_host: str
+    smtp_port: int
+    smtp_user: EmailStr
+    smtp_password: str
+    smtp_from: EmailStr = None  # можно не указывать — используем smtp_user
+
 
 
 settings = Settings()
