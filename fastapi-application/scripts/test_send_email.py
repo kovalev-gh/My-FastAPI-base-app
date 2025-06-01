@@ -1,4 +1,5 @@
-
+from dotenv import load_dotenv
+load_dotenv()
 
 import asyncio
 from mailing.send_email import send_email

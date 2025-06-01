@@ -25,7 +25,7 @@ ID заказа: {order.id}
 """
 
     await send_email(
-        recipient=settings.smtp_user,  # или адрес менеджера
+        recipient=settings.smtp.user,  # или адрес менеджера
         subject=subject,
         body=body,
     )

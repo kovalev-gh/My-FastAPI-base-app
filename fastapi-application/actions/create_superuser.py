@@ -1,3 +1,5 @@
+from dotenv import load_dotenv
+load_dotenv()
 
 import asyncio
 import os
@@ -8,7 +10,6 @@ from os import getenv
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 
-
 from sqlalchemy.ext.asyncio import AsyncSession
 from core.models import db_helper, User
 from core.schemas.user import UserCreate
@@ -16,10 +17,10 @@ from crud import users as users_crud
 from core.security import hash_password
 
 # Значения по умолчанию из переменных окружения или фиксированные
-DEFAULT_EMAIL = getenv("DEFAULT_EMAIL", "admin1@example.com")
-DEFAULT_USERNAME = getenv("DEFAULT_USERNAME", "admin1")
+DEFAULT_EMAIL = getenv("DEFAULT_EMAIL", "admin3@example.com")
+DEFAULT_USERNAME = getenv("DEFAULT_USERNAME", "admin3")
 DEFAULT_PASSWORD = getenv("DEFAULT_PASSWORD", "securepassword123")
-DEFAULT_PHONE_NUMBER = getenv("DEFAULT_PHONE_NUMBER", "1234567891")
+DEFAULT_PHONE_NUMBER = getenv("DEFAULT_PHONE_NUMBER", "1234567893")
 DEFAULT_IS_SUPERUSER = True
 
 

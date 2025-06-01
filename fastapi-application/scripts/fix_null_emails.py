@@ -1,3 +1,6 @@
+from dotenv import load_dotenv
+load_dotenv()
+
 import sqlalchemy as sa
 import sys
 from pathlib import Path
@@ -11,7 +14,7 @@ from core.models.user import User
 
 async def backfill_null_emails():
     async with db_helper.session_factory() as session:
-        result = await session.stream(sa.select(User).where(User.email_.is_(None)))
+        result = await session.stream(sa.select(User).where(User.email.is_(None)))
         count = 0
 
         async for row in result:
