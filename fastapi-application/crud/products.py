@@ -15,7 +15,7 @@ async def get_all_products(
     return result.all()
 
 
-async def get_product(
+async def get_product_by_id(
     session: AsyncSession,
     product_id: int,
 ) -> Product | None:
