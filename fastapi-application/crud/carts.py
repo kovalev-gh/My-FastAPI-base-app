@@ -1,51 +1,80 @@
 from fastapi import HTTPException
-from sqlalchemy import select, delete, update
+from sqlalchemy import select, delete
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
+from typing import Literal
+
 from core.models.cart import CartItem
-from core.schemas.cart import CartItemCreate
 from core.models.product import Product
+from core.schemas.cart import CartItemCreate
 
-async def add_to_cart(db: AsyncSession, user_id: int, item: CartItemCreate):
-    # 1. Проверка, существует ли товар
-    product_stmt = select(Product).filter_by(id=item.product_id)
-    product_result = await db.execute(product_stmt)
-    product = product_result.scalar_one_or_none()
 
+async def get_cart_item(db: AsyncSession, user_id: int, product_id: int) -> CartItem | None:
+    stmt = select(CartItem).filter_by(user_id=user_id, product_id=product_id)
+    result = await db.execute(stmt)
+    return result.scalar_one_or_none()
+
+
+async def set_cart_item(
+    db: AsyncSession,
+    user_id: int,
+    item: CartItemCreate,
+    mode: Literal["add", "set"] = "add"
+) -> CartItem | None:
+    if item.quantity < 0:
+        raise HTTPException(status_code=400, detail="Количество не может быть отрицательным")
+
+    # Проверка, существует ли товар
+    product = await db.scalar(select(Product).where(Product.id == item.product_id))
     if not product:
-        raise HTTPException(status_code=404, detail="Product not found")
+        raise HTTPException(status_code=404, detail="Товар не найден")
 
-    # 2. Найти запись в корзине
-    cart_stmt = select(CartItem).filter_by(user_id=user_id, product_id=item.product_id)
-    cart_result = await db.execute(cart_stmt)
-    cart_item = cart_result.scalar_one_or_none()
+    cart_item = await get_cart_item(db, user_id, item.product_id)
 
     if cart_item:
-        if item.quantity > 0:
+        if mode == "add":
             cart_item.quantity += item.quantity
+        elif mode == "set":
+            cart_item.quantity = item.quantity
     else:
-        if item.quantity > 0:
-            cart_item = CartItem(user_id=user_id, product_id=item.product_id, quantity=item.quantity)
-            db.add(cart_item)
+        if item.quantity <= 0:
+            return None  # не создаём запись с 0
+        cart_item = CartItem(
+            user_id=user_id,
+            product_id=item.product_id,
+            quantity=item.quantity
+        )
+        db.add(cart_item)
+
+    if cart_item.quantity <= 0:
+        await db.delete(cart_item)
+        await db.commit()
+        return None
 
     await db.commit()
 
-    if cart_item:
-        await db.refresh(cart_item)
-
-    return cart_item
+    # 🔁 Повторно загружаем объект с product
+    stmt = (
+        select(CartItem)
+        .options(selectinload(CartItem.product))
+        .filter_by(id=cart_item.id)
+    )
+    result = await db.execute(stmt)
+    return result.scalar_one()
 
 
 async def get_cart_by_user(db: AsyncSession, user_id: int):
-    stmt = select(CartItem).filter_by(user_id=user_id)
+    stmt = (
+        select(CartItem)
+        .options(selectinload(CartItem.product))
+        .filter_by(user_id=user_id)
+    )
     result = await db.execute(stmt)
     return result.scalars().all()
 
 
-async def remove_from_cart(db: AsyncSession, user_id: int, product_id: int):
-    stmt = select(CartItem).filter_by(user_id=user_id, product_id=product_id)
-    result = await db.execute(stmt)
-    cart_item = result.scalar_one_or_none()
-
+async def remove_from_cart(db: AsyncSession, user_id: int, product_id: int) -> bool:
+    cart_item = await get_cart_item(db, user_id, product_id)
     if cart_item:
         await db.delete(cart_item)
         await db.commit()
@@ -54,25 +83,5 @@ async def remove_from_cart(db: AsyncSession, user_id: int, product_id: int):
 
 
 async def clear_cart(db: AsyncSession, user_id: int):
-    stmt = delete(CartItem).filter_by(user_id=user_id)
-    await db.execute(stmt)
+    await db.execute(delete(CartItem).filter_by(user_id=user_id))
     await db.commit()
-
-
-async def update_cart_quantity(db: AsyncSession, user_id: int, product_id: int, new_quantity: int):
-    stmt = select(CartItem).filter_by(user_id=user_id, product_id=product_id)
-    result = await db.execute(stmt)
-    cart_item = result.scalar_one_or_none()
-
-    if not cart_item:
-        return None
-
-    if new_quantity <= 0:
-        await db.delete(cart_item)
-        await db.commit()
-        return None
-
-    cart_item.quantity = new_quantity
-    await db.commit()
-    await db.refresh(cart_item)
-    return cart_item

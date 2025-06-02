@@ -1,88 +1,82 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
-from fastapi.responses import JSONResponse
-from api.api_v1.deps import get_db, get_current_user_required
+from typing import List
+
+from api.api_v1.deps import get_current_user_required, get_db
+from core.models.user import User
 from core.schemas.cart import (
     CartItemCreate,
-    CartItemResponse,
-    CartItemUpdate
+    CartItemReadUser,
+    CartItemReadSuperuser,
 )
 from crud.carts import (
-    add_to_cart,
     get_cart_by_user,
     remove_from_cart,
     clear_cart,
-    update_cart_quantity
+    set_cart_item,
 )
 
-router = APIRouter( tags=["Cart"])
+router = APIRouter(tags=["Cart"])
 
-@router.post("/add", response_model=CartItemResponse)
-async def add(
+
+@router.get("", summary="Получить содержимое корзины")
+async def get_my_cart(
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user_required),
+):
+    items = await get_cart_by_user(db=db, user_id=user.id)
+
+    if user.is_superuser:
+        return [CartItemReadSuperuser.model_validate(i) for i in items]
+    return [CartItemReadUser.model_validate(i) for i in items]
+
+
+@router.post("/add", summary="Добавить товар в корзину")
+async def add_to_cart(
     item: CartItemCreate,
     db: AsyncSession = Depends(get_db),
-    user=Depends(get_current_user_required)
+    user: User = Depends(get_current_user_required),
 ):
-    """
-    Добавить товар в корзину или увеличить его количество.
-    """
-    result = await add_to_cart(db, user.id, item)
-    if not result:
-        raise HTTPException(status_code=400, detail="Quantity must be greater than 0")
-    return result
+    cart_item = await set_cart_item(db=db, user_id=user.id, item=item, mode="add")
+    if cart_item is None:
+        raise HTTPException(status_code=400, detail="Невозможно добавить товар с нулевым количеством")
 
-@router.patch("/update", response_model=CartItemResponse)
-async def update_quantity(
-    item: CartItemUpdate,
+    if user.is_superuser:
+        return CartItemReadSuperuser.model_validate(cart_item)
+    return CartItemReadUser.model_validate(cart_item)
+
+
+@router.patch("/update", summary="Обновить количество товара")
+async def update_cart_quantity(
+    item: CartItemCreate,
     db: AsyncSession = Depends(get_db),
-    user=Depends(get_current_user_required)
+    user: User = Depends(get_current_user_required),
 ):
-    """
-    Обновить количество конкретного товара в корзине.
-    Если quantity <= 0, товар удаляется.
-    """
-    result = await update_cart_quantity(db, user.id, item.product_id, item.quantity)
+    cart_item = await set_cart_item(db=db, user_id=user.id, item=item, mode="set")
+    if cart_item is None:
+        raise HTTPException(status_code=400, detail="Товар был удалён из корзины (кол-во = 0)")
 
-    if result is None:
-        # Если товар был удалён (или не найден), вернём сообщение явно
-        return JSONResponse(
-            content={"detail": "Item removed from cart"},
-            status_code=status.HTTP_200_OK
-        )
+    if user.is_superuser:
+        return CartItemReadSuperuser.model_validate(cart_item)
+    return CartItemReadUser.model_validate(cart_item)
 
-    return result
 
-@router.get("/", response_model=list[CartItemResponse])
-async def get_cart(
-    db: AsyncSession = Depends(get_db),
-    user=Depends(get_current_user_required)
-):
-    """
-    Получить все товары в корзине текущего пользователя.
-    """
-    return await get_cart_by_user(db, user.id)
-
-@router.delete("/remove/{product_id}")
+@router.delete("/remove/{product_id}", summary="Удалить товар из корзины")
 async def remove_item(
     product_id: int,
     db: AsyncSession = Depends(get_db),
-    user=Depends(get_current_user_required)
+    user: User = Depends(get_current_user_required),
 ):
-    """
-    Удалить один товар из корзины по product_id.
-    """
-    success = await remove_from_cart(db, user.id, product_id)
+    success = await remove_from_cart(db=db, user_id=user.id, product_id=product_id)
     if not success:
-        raise HTTPException(status_code=404, detail="Item not found")
-    return {"detail": "Item removed"}
+        raise HTTPException(status_code=404, detail="Товар не найден в корзине")
+    return {"detail": "Удалено"}
 
-@router.delete("/clear")
-async def clear(
+
+@router.delete("/clear", summary="Очистить корзину")
+async def clear_my_cart(
     db: AsyncSession = Depends(get_db),
-    user=Depends(get_current_user_required)
+    user: User = Depends(get_current_user_required),
 ):
-    """
-    Полностью очистить корзину пользователя.
-    """
-    await clear_cart(db, user.id)
-    return {"detail": "Cart cleared"}
+    await clear_cart(db=db, user_id=user.id)
+    return {"detail": "Корзина очищена"}
