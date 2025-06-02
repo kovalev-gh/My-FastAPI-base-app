@@ -22,3 +22,6 @@ class ProductRead(ProductBase):
     )
 
     id: int
+    retail_price: int | None
+    opt_price: int | None
+    quantity: int | None
