@@ -7,7 +7,10 @@ from fastapi import (
 from sqlalchemy.ext.asyncio import AsyncSession
 
 #from tasks import send_welcome_email
+
 from core.models import db_helper
+from core.models.user import User
+from api.api_v1.deps import get_current_superuser
 from core.schemas.product import (
     ProductRead,
     ProductCreate,
@@ -35,6 +38,7 @@ async def create_product(
         AsyncSession,
         Depends(db_helper.session_getter),
     ],
+    current_superuser: Annotated[User, Depends(get_current_superuser)],
     product_create: ProductCreate,
 ):
     product = await products_crud.create_product(
