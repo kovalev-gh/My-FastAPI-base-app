@@ -7,54 +7,59 @@ from fastapi import (
 )
 from sqlalchemy.ext.asyncio import AsyncSession
 
-#from tasks import send_welcome_email
-from crud.products import get_product_by_id
+from crud.products import (
+    get_product_by_id,
+    get_all_products,
+    create_product,
+)
 from core.models import db_helper
 from core.models.user import User
-from api.api_v1.deps import get_current_superuser
+from api.api_v1.deps import get_current_user_optional, get_current_superuser
 from core.schemas.product import (
-    ProductRead,
     ProductCreate,
+    ProductReadUser,
+    ProductReadSuperuser,
 )
-from crud import products as products_crud
 
 router = APIRouter(tags=["Product"])
 
 
-@router.get("", response_model=list[ProductRead])
+@router.get("", summary="Список продуктов (для всех пользователей)")
 async def get_products(
-    # session: AsyncSession = Depends(db_helper.session_getter),
-    session: Annotated[
-        AsyncSession,
-        Depends(db_helper.session_getter),
-    ],
+    session: Annotated[AsyncSession, Depends(db_helper.session_getter)],
+    current_user: Annotated[User | None, Depends(get_current_user_optional)],
 ):
-    products = await products_crud.get_all_products(session=session)
-    return products
+    products = await get_all_products(session=session)
+
+    if current_user and current_user.is_superuser:
+        return [ProductReadSuperuser.model_validate(p) for p in products]
+    else:
+        return [ProductReadUser.model_validate(p) for p in products]
 
 
-@router.post("", response_model=ProductRead)
-async def create_product(
-    session: Annotated[
-        AsyncSession,
-        Depends(db_helper.session_getter),
-    ],
+@router.post("", response_model=ProductReadSuperuser, summary="Создание продукта (только для суперпользователя)")
+async def create_product_endpoint(
+    session: Annotated[AsyncSession, Depends(db_helper.session_getter)],
     current_superuser: Annotated[User, Depends(get_current_superuser)],
     product_create: ProductCreate,
 ):
-    product = await products_crud.create_product(
+    product = await create_product(
         session=session,
         product_create=product_create,
     )
-    return product
+    return ProductReadSuperuser.model_validate(product)
 
 
-@router.get("/{product_id}", response_model=ProductRead)
+@router.get("/{product_id}", summary="Получить продукт по ID")
 async def read_product(
     product_id: int,
     session: Annotated[AsyncSession, Depends(db_helper.session_getter)],
+    current_user: Annotated[User | None, Depends(get_current_user_optional)],
 ):
-    product = await products_crud.get_product_by_id(session=session, product_id=product_id)
+    product = await get_product_by_id(session=session, product_id=product_id)
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
-    return product
+
+    if current_user and current_user.is_superuser:
+        return ProductReadSuperuser.model_validate(product)
+    return ProductReadUser.model_validate(product)

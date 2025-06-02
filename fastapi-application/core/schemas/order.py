@@ -1,8 +1,10 @@
 from pydantic import BaseModel
 from datetime import datetime
 from enum import Enum
-from core.schemas.product import ProductRead
+
+from core.schemas.product import ProductReadUser, ProductReadSuperuser
 from core.schemas.user import UserRead
+
 
 class OrderStatus(str, Enum):
     PENDING = "pending"
@@ -10,26 +12,50 @@ class OrderStatus(str, Enum):
     SHIPPED = "shipped"
     CANCELLED = "cancelled"
 
+
 class OrderBase(BaseModel):
     address: str | None = None
+
 
 class OrderCreate(OrderBase):
     pass
 
-class OrderItemRead(BaseModel):
-    product: ProductRead
+
+class OrderItemReadUser(BaseModel):
+    product: ProductReadUser
     quantity: int
 
     class Config:
         from_attributes = True
 
-class OrderRead(OrderBase):
+
+class OrderItemReadSuperuser(BaseModel):
+    product: ProductReadSuperuser
+    quantity: int
+
+    class Config:
+        from_attributes = True
+
+
+class OrderReadUser(OrderBase):
     id: int
     user_id: int
     status: OrderStatus
     created_at: datetime
     user: UserRead
-    items: list[OrderItemRead]
+    items: list[OrderItemReadUser]
+
+    class Config:
+        from_attributes = True
+
+
+class OrderReadSuperuser(OrderBase):
+    id: int
+    user_id: int
+    status: OrderStatus
+    created_at: datetime
+    user: UserRead
+    items: list[OrderItemReadSuperuser]
 
     class Config:
         from_attributes = True

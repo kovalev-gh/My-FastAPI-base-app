@@ -1,5 +1,4 @@
-from pydantic import BaseModel
-from pydantic import ConfigDict
+from pydantic import BaseModel, ConfigDict
 
 
 class ProductBase(BaseModel):
@@ -7,21 +6,18 @@ class ProductBase(BaseModel):
     description: str
 
 
-
 class ProductCreate(ProductBase):
-
-    retail_price: str
-    opt_price: str
-    quantity: str
-    pass
-
-
-class ProductRead(ProductBase):
-    model_config = ConfigDict(
-        from_attributes=True,
-    )
-
-    id: int
     retail_price: int | None
     opt_price: int | None
     quantity: int | None
+
+
+class ProductReadUser(ProductBase):
+    id: int
+    retail_price: int | None
+    quantity: int | None
+    model_config = ConfigDict(from_attributes=True)
+
+class ProductReadSuperuser(ProductReadUser):
+    opt_price: int | None
+
