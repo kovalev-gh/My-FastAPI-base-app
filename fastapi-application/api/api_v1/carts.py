@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi.responses import JSONResponse
-from api.api_v1.deps import get_db, get_current_user
+from api.api_v1.deps import get_db, get_current_user_required
 from core.schemas.cart import (
     CartItemCreate,
     CartItemResponse,
@@ -21,7 +21,7 @@ router = APIRouter( tags=["Cart"])
 async def add(
     item: CartItemCreate,
     db: AsyncSession = Depends(get_db),
-    user=Depends(get_current_user)
+    user=Depends(get_current_user_required)
 ):
     """
     Добавить товар в корзину или увеличить его количество.
@@ -35,7 +35,7 @@ async def add(
 async def update_quantity(
     item: CartItemUpdate,
     db: AsyncSession = Depends(get_db),
-    user=Depends(get_current_user)
+    user=Depends(get_current_user_required)
 ):
     """
     Обновить количество конкретного товара в корзине.
@@ -55,7 +55,7 @@ async def update_quantity(
 @router.get("/", response_model=list[CartItemResponse])
 async def get_cart(
     db: AsyncSession = Depends(get_db),
-    user=Depends(get_current_user)
+    user=Depends(get_current_user_required)
 ):
     """
     Получить все товары в корзине текущего пользователя.
@@ -66,7 +66,7 @@ async def get_cart(
 async def remove_item(
     product_id: int,
     db: AsyncSession = Depends(get_db),
-    user=Depends(get_current_user)
+    user=Depends(get_current_user_required)
 ):
     """
     Удалить один товар из корзины по product_id.
@@ -79,7 +79,7 @@ async def remove_item(
 @router.delete("/clear")
 async def clear(
     db: AsyncSession = Depends(get_db),
-    user=Depends(get_current_user)
+    user=Depends(get_current_user_required)
 ):
     """
     Полностью очистить корзину пользователя.

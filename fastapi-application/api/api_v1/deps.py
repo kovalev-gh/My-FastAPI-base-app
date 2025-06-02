@@ -11,46 +11,52 @@ from core.security import SECRET_KEY, ALGORITHM  # или подставь на�
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/token", auto_error=False)
 
 
+# 📦 Получение сессии
 async def get_db() -> AsyncSession:
     async for session in db_helper.session_getter():
         yield session
 
 
-async def get_current_user(
-    token: str = Depends(oauth2_scheme),
+# 🔐 Обязательный пользователь (авторизация обязательна)
+async def get_current_user_required(
+    token: str | None = Depends(oauth2_scheme),
     db: AsyncSession = Depends(get_db),
 ) -> User:
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
+    if token is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Вы не авторизованы",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        username: str = payload.get("sub")
+        username: str | None = payload.get("sub")
         if username is None:
-            raise credentials_exception
+            raise HTTPException(status_code=401, detail="Невалидный токен")
     except JWTError:
-        raise credentials_exception
+        raise HTTPException(status_code=401, detail="Невалидный токен")
 
     user = await get_user_by_username(db, username=username)
     if user is None:
-        raise credentials_exception
+        raise HTTPException(status_code=401, detail="Пользователь не найден")
+
     return user
 
 
+# 👑 Только суперпользователь
 async def get_current_superuser(
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user_required),
 ) -> User:
     if not current_user.is_superuser:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="You do not have sufficient privileges to perform this action"
+            detail="Недостаточно прав для выполнения действия",
         )
     return current_user
 
 
-# ✅ Новый: опциональный пользователь (может быть None)
+# 🟡 Опциональный пользователь (может быть None)
 async def get_current_user_optional(
     token: str | None = Depends(oauth2_scheme),
     db: AsyncSession = Depends(get_db),
@@ -59,7 +65,7 @@ async def get_current_user_optional(
         return None
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        username: str = payload.get("sub")
+        username: str | None = payload.get("sub")
         if username is None:
             return None
     except JWTError:
