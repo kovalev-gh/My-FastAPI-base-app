@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy import ForeignKey, Text, Integer, String
+from sqlalchemy import ForeignKey, Text, Integer, String, Boolean
 from core.models.mixins.int_id_pk import IntIdPkMixin
 from core.models.base import Base
 
@@ -26,3 +26,5 @@ class ProductImage(IntIdPkMixin, Base):
     image_path: Mapped[str] = mapped_column(String, nullable=False)
 
     product: Mapped["Product"] = relationship(back_populates="images")
+
+    is_main: Mapped[bool] = mapped_column(Boolean, default=False)

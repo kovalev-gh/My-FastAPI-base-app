@@ -7,30 +7,28 @@ from fastapi import (
     File,
     Query,
 )
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from api.api_v1.deps import get_current_user_optional, get_current_superuser
+from core.models import db_helper
 from core.models.user import User
 from core.schemas.product import (
     ProductCreate,
     ProductReadUser,
     ProductReadSuperuser,
 )
-from core.models.product import Product, ProductImage
-from core.models import db_helper
 from crud.products import (
-    get_product_by_id,
     get_all_products,
+    get_product_by_id,
     create_product,
+    save_uploaded_image_to_product,
+    delete_product_image,
+    set_main_product_image,
+    get_product_images,
 )
-
-import os, uuid, shutil
 
 router = APIRouter(tags=["Product"])
 
-BASE_MEDIA_DIR = "media/products"
 
-# 📦 Получение всех продуктов
 @router.get("", summary="Список продуктов (для всех пользователей)")
 async def get_products(
     session: Annotated[AsyncSession, Depends(db_helper.session_getter)],
@@ -40,23 +38,19 @@ async def get_products(
 
     if current_user and current_user.is_superuser:
         return [ProductReadSuperuser.model_validate(p) for p in products]
-    else:
-        return [ProductReadUser.model_validate(p) for p in products]
+    return [ProductReadUser.model_validate(p) for p in products]
 
-# ➕ Создание продукта
+
 @router.post("", response_model=ProductReadSuperuser, summary="Создание продукта (только для суперпользователя)")
 async def create_product_endpoint(
     session: Annotated[AsyncSession, Depends(db_helper.session_getter)],
     current_superuser: Annotated[User, Depends(get_current_superuser)],
     product_create: ProductCreate,
 ):
-    product = await create_product(
-        session=session,
-        product_create=product_create,
-    )
+    product = await create_product(session=session, product_create=product_create)
     return ProductReadSuperuser.model_validate(product)
 
-# 🔍 Получение продукта по ID
+
 @router.get("/{product_id}", summary="Получить продукт по ID")
 async def read_product(
     product_id: int,
@@ -71,46 +65,68 @@ async def read_product(
         return ProductReadSuperuser.model_validate(product)
     return ProductReadUser.model_validate(product)
 
-# 🖼 Загрузка изображения с указанием подпапки
-@router.post("/{product_id}/upload-image", summary="Загрузить изображение в подпапку, например phones/iphone5")
+
+@router.post("/{product_id}/upload-image", summary="Загрузить изображение в подпапку")
 async def upload_product_image(
     session: Annotated[AsyncSession, Depends(db_helper.session_getter)],
+    current_superuser: Annotated[User, Depends(get_current_superuser)],
     product_id: int,
     subfolder: str = Query(..., description="Путь к подпапке, например 'phones/iphone5'"),
     file: UploadFile = File(...),
-
 ):
-    # Проверка типа файла
     if not file.content_type.startswith("image/"):
         raise HTTPException(status_code=400, detail="Файл должен быть изображением")
 
-    # Проверка существования товара
-    result = await session.execute(select(Product).where(Product.id == product_id))
-    product = result.scalar_one_or_none()
-    if not product:
-        raise HTTPException(status_code=404, detail="Товар не найден")
-
-    # Подготовка пути
-    safe_subfolder = os.path.normpath(subfolder).replace("..", "").strip("/\\")
-    upload_dir = os.path.join(BASE_MEDIA_DIR, safe_subfolder)
-    os.makedirs(upload_dir, exist_ok=True)
-
-    # Сохраняем файл с уникальным именем
-    ext = file.filename.split(".")[-1]
-    filename = f"{uuid.uuid4().hex}.{ext}"
-    file_path = os.path.join(upload_dir, filename)
-
-    with open(file_path, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
-
-    # Сохраняем в БД
-    image = ProductImage(product_id=product_id, image_path=file_path)
-    session.add(image)
-    await session.commit()
-    await session.refresh(image)
+    image = await save_uploaded_image_to_product(
+        session=session,
+        product_id=product_id,
+        file=file,
+        subfolder=subfolder,
+    )
 
     return {
         "message": "Изображение загружено",
-        "image_path": f"/{file_path}",
-        "product_id": product_id
+        "image_path": f"/{image.image_path}",
+        "product_id": image.product_id,
+        "image_id": image.id,
     }
+
+
+@router.delete("/images/{image_id}", summary="Удалить изображение товара")
+async def delete_image(
+    image_id: int,
+    session: Annotated[AsyncSession, Depends(db_helper.session_getter)],
+    current_superuser: Annotated[User, Depends(get_current_superuser)],
+):
+    success = await delete_product_image(session, image_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Изображение не найдено")
+    return {"message": "Изображение удалено"}
+
+
+@router.post("/images/{image_id}/set-main", summary="Установить изображение как главное")
+async def set_main_image(
+    image_id: int,
+    session: Annotated[AsyncSession, Depends(db_helper.session_getter)],
+    current_superuser: Annotated[User, Depends(get_current_superuser)],
+):
+    success = await set_main_product_image(session, image_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Изображение не найдено")
+    return {"message": "Главное изображение установлено"}
+
+
+@router.get("/{product_id}/images", summary="Получить изображения товара")
+async def get_product_images_endpoint(
+    product_id: int,
+    session: Annotated[AsyncSession, Depends(db_helper.session_getter)],
+):
+    images = await get_product_images(session, product_id)
+    return [
+        {
+            "id": img.id,
+            "image_path": f"/{img.image_path}",
+            "is_main": img.is_main
+        }
+        for img in images
+    ]
