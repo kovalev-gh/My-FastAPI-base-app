@@ -1,9 +1,7 @@
-from sqlalchemy import Integer, Text
-from sqlalchemy.orm import Mapped
-from sqlalchemy.orm import mapped_column
-from .base import Base
-from .mixins.int_id_pk import IntIdPkMixin
-
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy import ForeignKey, Text, Integer, String
+from core.models.mixins.int_id_pk import IntIdPkMixin
+from core.models.base import Base
 
 class Product(IntIdPkMixin, Base):
 
@@ -13,4 +11,18 @@ class Product(IntIdPkMixin, Base):
     quantity: Mapped[int | None] = mapped_column(Integer, nullable=True)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
 
+    # связь с изображениями
+    images: Mapped[list["ProductImage"]] = relationship(
+        back_populates="product",
+        cascade="all, delete-orphan"
+    )
 
+
+class ProductImage(IntIdPkMixin, Base):
+
+    product_id: Mapped[int] = mapped_column(
+        ForeignKey("products.id", ondelete="CASCADE")
+    )
+    image_path: Mapped[str] = mapped_column(String, nullable=False)
+
+    product: Mapped["Product"] = relationship(back_populates="images")
