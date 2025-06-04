@@ -20,6 +20,7 @@ class UserCreate(UserBase):
 class UserRead(UserBase):
     model_config = ConfigDict(from_attributes=True)
     id: int
+    is_superuser: bool
 
 
 class Token(BaseModel):

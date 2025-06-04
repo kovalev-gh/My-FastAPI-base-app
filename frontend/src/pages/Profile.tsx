@@ -8,7 +8,6 @@ interface User {
   email?: string;
   phone_number?: string;
   is_superuser: boolean;
-  // Добавь другие поля по желанию
 }
 
 function Profile() {
@@ -24,7 +23,8 @@ function Profile() {
       } catch (err: any) {
         console.error("Ошибка при получении пользователя:", err);
         setError("Не удалось получить информацию о пользователе");
-        navigate("/login"); // перенаправление если токен недействителен
+        localStorage.removeItem("token"); // очистка токена
+        navigate("/login"); // редирект
       }
     };
 
@@ -37,7 +37,11 @@ function Profile() {
   };
 
   if (error) {
-    return <p style={{ color: "red" }}>{error}</p>;
+    return (
+      <div style={{ maxWidth: 500, margin: "auto", color: "red" }}>
+        <p>{error}</p>
+      </div>
+    );
   }
 
   if (!user) {
@@ -49,9 +53,12 @@ function Profile() {
       <h2>Профиль</h2>
       <p><strong>ID:</strong> {user.id}</p>
       <p><strong>Имя пользователя:</strong> {user.username}</p>
-      <p><strong>Email пользователя:</strong> {user.email}</p>
-      <p><strong>Телефон пользователя:</strong> {user.phone_number}</p>
-      <p><strong>Суперпользователь:</strong> {user.is_superuser ? "Да" : "Нет"}</p>
+      {user.email && <p><strong>Email:</strong> {user.email}</p>}
+      {user.phone_number && <p><strong>Телефон:</strong> {user.phone_number}</p>}
+      {/* Показываем только если is_superuser === true */}
+      {user.is_superuser && (
+      <p style={{ color: "green", fontWeight: "bold" }}>Суперпользователь: Да</p>
+    )}
 
       <button onClick={handleLogout}>Выйти</button>
     </div>

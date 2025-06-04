@@ -42,3 +42,5 @@ python actions/create_superuser.py
 npm run dev
 
 install nodejs npm
+
+securepassword123
