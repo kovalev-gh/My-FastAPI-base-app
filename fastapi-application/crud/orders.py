@@ -53,9 +53,8 @@ async def create_order_from_cart(user_id: int, db: AsyncSession) -> Order:
 async def get_orders_by_user_id(db: AsyncSession, user_id: int):
     result = await db.execute(
         select(Order)
-        .options(
-            selectinload(Order.items).selectinload(OrderItem.product)
-        )
+        .options(selectinload(Order.user), selectinload(Order.items).selectinload(OrderItem.product))
         .where(Order.user_id == user_id)
+        .order_by(Order.created_at.desc())
     )
     return result.scalars().all()

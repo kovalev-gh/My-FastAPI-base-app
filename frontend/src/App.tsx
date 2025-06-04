@@ -9,7 +9,7 @@ import Register from "./pages/Register";
 import { useAuth } from "./context/AuthContext";
 import CartPage from "./pages/CartPage";
 import OrdersPage from "./pages/OrdersPage";
-
+import UserList from "./pages/UserList";
 
 function App() {
   const { user } = useAuth();
@@ -25,7 +25,7 @@ function App() {
         <Route path="/products" element={<ProductList />} />
         <Route path="/products/:id" element={<ProductDetail />} />
 
-        {/* Страница создания товара — доступна только суперпользователю */}
+        {/* Создание продукта — только для суперпользователя */}
         <Route
           path="/products/create"
           element={
@@ -37,10 +37,24 @@ function App() {
           }
         />
 
+        {/* Страница пользователей — только для суперпользователя */}
+        <Route
+          path="/users"
+          element={
+            user?.is_superuser ? (
+              <UserList />
+            ) : (
+              <Navigate to="/products" replace />
+            )
+          }
+        />
+
         {/* Аутентификация */}
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/profile" element={<Profile />} />
+
+        {/* Корзина и заказы */}
         <Route path="/cart" element={<CartPage />} />
         <Route path="/orders" element={<OrdersPage />} />
 

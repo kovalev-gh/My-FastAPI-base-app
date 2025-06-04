@@ -15,7 +15,10 @@ const Header = () => {
       <Link to="/products" style={{ marginRight: "1rem" }}>📦 Продукты</Link>
 
       {user?.is_superuser && (
-        <Link to="/products/create" style={{ marginRight: "1rem" }}>➕ Добавить</Link>
+        <>
+          <Link to="/products/create" style={{ marginRight: "1rem" }}>➕ Добавить</Link>
+          <Link to="/users" style={{ marginRight: "1rem" }}>👥 Пользователи</Link>
+        </>
       )}
 
       {user && (

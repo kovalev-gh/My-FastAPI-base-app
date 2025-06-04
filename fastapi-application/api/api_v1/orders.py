@@ -1,7 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import SQLAlchemyError
-from typing import List
+from typing import List, Optional
 
 from core.schemas.order import OrderReadUser, OrderReadSuperuser
 from crud.orders import create_order_from_cart, get_orders_by_user_id
@@ -37,5 +37,27 @@ async def get_my_orders(
         if user.is_superuser:
             return [OrderReadSuperuser.model_validate(o) for o in orders]
         return [OrderReadUser.model_validate(o) for o in orders]
+    except SQLAlchemyError:
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+@router.get("/", summary="Получить заказы (по user_id — только для суперпользователей)")
+async def get_orders(
+    user_id: Optional[int] = Query(None),
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user_required),
+):
+    try:
+        target_user_id = user_id if user_id is not None else user.id
+
+        if user_id is not None and not user.is_superuser:
+            raise HTTPException(status_code=403, detail="Недостаточно прав")
+
+        orders = await get_orders_by_user_id(db=db, user_id=target_user_id)
+
+        if user.is_superuser:
+            return [OrderReadSuperuser.model_validate(o) for o in orders]
+        return [OrderReadUser.model_validate(o) for o in orders]
+
     except SQLAlchemyError:
         raise HTTPException(status_code=500, detail="Internal server error")
