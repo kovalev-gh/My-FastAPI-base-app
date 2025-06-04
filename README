@@ -38,3 +38,7 @@ docker-compose up --build
 uvicorn main:main_app --reload
 
 python actions/create_superuser.py
+
+npm run dev
+
+install nodejs npm
