@@ -41,7 +41,7 @@ async def get_my_orders(
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
-@router.get("/", summary="Получить заказы (по user_id — только для суперпользователей)")
+@router.get("", summary="Получить заказы (по user_id — только для суперпользователей)")
 async def get_orders(
     user_id: Optional[int] = Query(None),
     db: AsyncSession = Depends(get_db),

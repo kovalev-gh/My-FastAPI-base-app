@@ -10,6 +10,7 @@ import { useAuth } from "./context/AuthContext";
 import CartPage from "./pages/CartPage";
 import OrdersPage from "./pages/OrdersPage";
 import UserList from "./pages/UserList";
+import UserOrdersPage from "./pages/UserOrdersPage";
 
 function App() {
   const { user } = useAuth();
@@ -43,6 +44,18 @@ function App() {
           element={
             user?.is_superuser ? (
               <UserList />
+            ) : (
+              <Navigate to="/products" replace />
+            )
+          }
+        />
+
+        {/* Заказы конкретного пользователя — только для суперпользователя */}
+        <Route
+          path="/users/:userId/orders"
+          element={
+            user?.is_superuser ? (
+              <UserOrdersPage />
             ) : (
               <Navigate to="/products" replace />
             )
