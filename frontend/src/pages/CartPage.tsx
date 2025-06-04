@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { createOrderFromCart } from "../api/orders";
 import {
   getCart,
   removeFromCart,
@@ -52,6 +53,17 @@ export default function CartPage() {
     fetchCart();
   };
 
+  const handleOrder = async () => {
+    try {
+      await createOrderFromCart();
+      alert("✅ Заказ оформлен!");
+      fetchCart(); // обновим корзину
+    } catch (err) {
+      alert("❌ Не удалось оформить заказ");
+      console.error(err);
+    }
+  };
+
   const total = cartItems.reduce((acc, item) => {
     const price = item.product.retail_price ?? 0;
     return acc + price * item.quantity;
@@ -87,6 +99,10 @@ export default function CartPage() {
           <p>
             <strong>Итого:</strong> {total} ₽
           </p>
+
+          <button onClick={handleOrder} style={{ marginRight: "1rem" }}>
+            Оформить заказ
+          </button>
 
           <button onClick={handleClear}>Очистить корзину</button>
         </>

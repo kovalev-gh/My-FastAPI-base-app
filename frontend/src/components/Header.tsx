@@ -22,6 +22,8 @@ const Header = () => {
         <>
           <Link to="/cart" style={{ marginRight: "1rem" }}>🛒 Корзина</Link>
           <Link to="/profile" style={{ marginRight: "1rem" }}>👤 Профиль</Link>
+          <Link to="/orders" style={{ marginRight: "1rem" }}>📋 Заказы</Link>
+
           <button onClick={handleLogout} style={{ cursor: "pointer" }}>🚪 Выйти</button>
         </>
       )}
