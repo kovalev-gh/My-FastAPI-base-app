@@ -7,6 +7,7 @@ import Login from "./pages/Login";
 import Profile from "./pages/Profile";
 import Register from "./pages/Register";
 import { useAuth } from "./context/AuthContext";
+import CartPage from "./pages/CartPage";
 
 function App() {
   const { user } = useAuth();
@@ -38,6 +39,7 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/profile" element={<Profile />} />
+        <Route path="/cart" element={<CartPage />} />
 
         {/* 404 */}
         <Route

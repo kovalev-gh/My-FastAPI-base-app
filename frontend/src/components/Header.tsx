@@ -18,17 +18,18 @@ const Header = () => {
         <Link to="/products/create" style={{ marginRight: "1rem" }}>➕ Добавить</Link>
       )}
 
+      {user && (
+        <>
+          <Link to="/cart" style={{ marginRight: "1rem" }}>🛒 Корзина</Link>
+          <Link to="/profile" style={{ marginRight: "1rem" }}>👤 Профиль</Link>
+          <button onClick={handleLogout} style={{ cursor: "pointer" }}>🚪 Выйти</button>
+        </>
+      )}
+
       {!user && (
         <>
           <Link to="/login" style={{ marginRight: "1rem" }}>🔑 Войти</Link>
           <Link to="/register">📝 Регистрация</Link>
-        </>
-      )}
-
-      {user && (
-        <>
-          <Link to="/profile" style={{ marginRight: "1rem" }}>👤 Профиль</Link>
-          <button onClick={handleLogout} style={{ cursor: "pointer" }}>🚪 Выйти</button>
         </>
       )}
     </nav>

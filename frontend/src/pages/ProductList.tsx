@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { getProducts } from "../api/products";
+import { addToCart } from "../api/cart";
 
 type Product = {
   id: number;
@@ -21,6 +22,16 @@ export default function ProductList() {
       .finally(() => setLoading(false));
   }, []);
 
+  const handleAddToCart = async (productId: number) => {
+    try {
+      await addToCart(productId, 1);
+      alert("✅ Товар добавлен в корзину!");
+    } catch (error) {
+      console.error("❌ Ошибка при добавлении в корзину:", error);
+      alert("⛔ Не удалось добавить товар. Возможно, вы не вошли в систему.");
+    }
+  };
+
   if (loading) return <p>Загрузка товаров...</p>;
 
   return (
@@ -31,8 +42,10 @@ export default function ProductList() {
       ) : (
         <ul>
           {products.map(product => (
-            <li key={product.id}>
+            <li key={product.id} style={{ marginBottom: "1rem" }}>
               <strong>{product.title}</strong> — {product.retail_price ?? "нет цены"} ₽
+              <br />
+              <button onClick={() => handleAddToCart(product.id)}>🛒 В корзину</button>
             </li>
           ))}
         </ul>

@@ -23,3 +23,21 @@ export async function getProducts() {
     return []; // возвращаем пустой список в случае ошибки
   }
 }
+
+export async function createProduct(data: {
+  title: string;
+  description: string;
+  retail_price: number;
+  opt_price: number;
+  quantity: number;
+}) {
+  const token = localStorage.getItem("token");
+
+  const response = await axios.post("/api/v1/products", data, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  return response.data;
+}
