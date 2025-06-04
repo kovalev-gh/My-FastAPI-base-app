@@ -44,3 +44,17 @@ npm run dev
 install nodejs npm
 
 securepassword123
+
+
+
+чтобы работал фронтенд, нужно выполнить (но я хз куда это устанавливает системно или в окружение)
+cd frontend
+nvm install --lts
+nvm use --lts
+sudo apt update
+sudo apt install nodejs npm
+потом узнать путь which node
+после этого перейти в
+File → Settings → Languages & Frameworks → TypeScript
+выбрать add interpreter и вписать там то что выдаст на команду which node
+Это все очень примерно, и позже нужно сделать нормальную точную инструкцию

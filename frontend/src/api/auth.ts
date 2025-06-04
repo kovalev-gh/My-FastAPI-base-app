@@ -16,3 +16,13 @@ export async function login(username: string, password: string) {
 
   return response.data; // { access_token, token_type }
 }
+
+export async function registerUser(data: {
+  username: string;
+  email: string;
+  password: string;
+  phone_number: string;
+}) {
+  const response = await axios.post("/api/v1/auth/register", data);
+  return response.data;
+}

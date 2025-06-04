@@ -5,6 +5,7 @@ import ProductForm from "./pages/ProductForm";
 import Header from "./components/Header";
 import Login from "./pages/Login";
 import Profile from "./pages/Profile";
+import Register from "./pages/Register";
 
 function App() {
   return (
@@ -20,6 +21,7 @@ function App() {
         <Route path="/products/create" element={<ProductForm />} />
         <Route path="/login" element={<Login />} />
         <Route path="/profile" element={<Profile />} />
+        <Route path="/register" element={<Register />} />
 
         {/* 404 — если путь не найден */}
         <Route path="*" element={<div style={{ padding: "2rem" }}>404 – Страница не найдена</div>} />
