@@ -52,7 +52,7 @@ function App() {
 
         {/* Заказы конкретного пользователя — только для суперпользователя */}
         <Route
-          path="/users/:userId/orders"
+          path="/orders/user/:id"
           element={
             user?.is_superuser ? (
               <UserOrdersPage />

@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
-import api from "../api/axios";
+import { getUsers } from "../api/users";
+import { Link } from "react-router-dom";
 
 type User = {
   id: number;
   username: string;
-  email: string | null;
-  phone_number: string | null;
+  email?: string;
+  phone_number?: string;
   is_superuser: boolean;
 };
 
@@ -14,51 +15,47 @@ export default function UserList() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchUsers = async () => {
-      try {
-        const response = await api.get("/users");
-        setUsers(response.data);
-      } catch (error) {
-        console.error("Ошибка при получении пользователей:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchUsers();
+    getUsers()
+      .then(setUsers)
+      .catch((err) => console.error("Ошибка загрузки пользователей", err))
+      .finally(() => setLoading(false));
   }, []);
 
-  if (loading) return <p style={{ padding: "2rem" }}>Загрузка пользователей...</p>;
+  if (loading) return <p>Загрузка пользователей...</p>;
 
   return (
     <div style={{ padding: "2rem" }}>
       <h2>Пользователи</h2>
-      <table border={1} cellPadding={8} cellSpacing={0}>
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Имя</th>
-            <th>Email</th>
-            <th>Телефон</th>
-            <th>Суперпользователь</th>
-            <th>Заказы</th>
-          </tr>
-        </thead>
-        <tbody>
-          {users.map((u) => (
-            <tr key={u.id}>
-              <td>{u.id}</td>
-              <td>{u.username}</td>
-              <td>{u.email ?? "—"}</td>
-              <td>{u.phone_number ?? "—"}</td>
-              <td>{u.is_superuser ? "✅ Да" : "—"}</td>
-              <td>
-                <a href={`/orders?user_id=${u.id}`}>📦 Смотреть</a>
-              </td>
+      {users.length === 0 ? (
+        <p>Нет пользователей</p>
+      ) : (
+        <table style={{ borderCollapse: "collapse", width: "100%" }}>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Имя</th>
+              <th>Почта</th>
+              <th>Телефон</th>
+              <th>Суперпользователь</th>
+              <th>Заказы</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {users.map((u) => (
+              <tr key={u.id}>
+                <td>{u.id}</td>
+                <td>{u.username}</td>
+                <td>{u.email ?? "—"}</td>
+                <td>{u.phone_number ?? "—"}</td>
+                <td>{u.is_superuser ? "Да" : "Нет"}</td>
+                <td>
+                  <Link to={`/orders/user/${u.id}`}>Посмотреть</Link>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
     </div>
   );
 }

@@ -13,6 +13,10 @@ type Order = {
   created_at: string;
   status: string;
   items: OrderItem[];
+  user: {
+    id: number;
+    username: string;
+  };
 };
 
 export default function UserOrdersPage() {
@@ -30,24 +34,30 @@ export default function UserOrdersPage() {
 
   if (loading) return <p>Загрузка заказов пользователя...</p>;
 
+  const username = orders[0]?.user?.username ?? `ID ${id}`;
+
   return (
     <div style={{ padding: "2rem" }}>
-      <h2>Заказы пользователя #{id}</h2>
+      <h2>Заказы пользователя {username}</h2>
       {orders.length === 0 ? (
         <p>Нет заказов</p>
       ) : (
         orders.map((order) => (
           <div key={order.id} style={{ marginBottom: "2rem", padding: "1rem", border: "1px solid #ccc" }}>
-            <h3>Заказ #{order.id}</h3>
-            <p>Статус: {order.status}</p>
-            <p>Дата: {new Date(order.created_at).toLocaleString()}</p>
+            <h3>📦 Заказ #{order.id}</h3>
+            <p>🕒 {new Date(order.created_at).toLocaleString()}</p>
+            <p>📌 Статус: {order.status}</p>
             <ul>
               {order.items.map((item) => (
                 <li key={item.id}>
-                  {item.product.title} — {item.product.retail_price ?? "нет цены"} ₽ × {item.quantity}
+                  {item.product.title} — {item.product.retail_price ?? "нет цены"} ₽ × {item.quantity} шт.
                 </li>
               ))}
             </ul>
+            <p>
+              <strong>💰 Итого:</strong>{" "}
+              {order.items.reduce((acc, item) => acc + (item.product.retail_price ?? 0) * item.quantity, 0)} ₽
+            </p>
           </div>
         ))
       )}
