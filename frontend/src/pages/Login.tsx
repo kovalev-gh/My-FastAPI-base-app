@@ -1,3 +1,5 @@
+// src/pages/Login.tsx
+
 import { useState } from "react";
 import { login } from "../api/auth";
 
@@ -14,6 +16,9 @@ function Login() {
     try {
       const data = await login(username, password);
       setToken(data.access_token);
+
+      // 💾 Сохраняем токен в localStorage
+      localStorage.setItem("token", data.access_token);
     } catch (err: any) {
       console.error("Login error:", err);
       setError("Неверное имя пользователя или пароль");
