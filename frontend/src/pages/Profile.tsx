@@ -1,5 +1,5 @@
-// src/pages/Profile.tsx
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import api from "../api/axios";
 
 interface User {
@@ -8,12 +8,13 @@ interface User {
   email?: string;
   phone_number?: string;
   is_superuser: boolean;
+  // Добавь другие поля по желанию
 }
 
-export default function Profile() {
+function Profile() {
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState("");
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -21,30 +22,40 @@ export default function Profile() {
         const response = await api.get("/auth/me");
         setUser(response.data);
       } catch (err: any) {
-        setError("Ошибка при загрузке данных пользователя.");
-        console.error(err);
-      } finally {
-        setLoading(false);
+        console.error("Ошибка при получении пользователя:", err);
+        setError("Не удалось получить информацию о пользователе");
+        navigate("/login"); // перенаправление если токен недействителен
       }
     };
 
     fetchUser();
-  }, []);
+  }, [navigate]);
 
-  if (loading) return <p>Загрузка...</p>;
-  if (error) return <p style={{ color: "red" }}>{error}</p>;
-  if (!user) return <p>Пользователь не найден</p>;
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    navigate("/login");
+  };
+
+  if (error) {
+    return <p style={{ color: "red" }}>{error}</p>;
+  }
+
+  if (!user) {
+    return <p>Загрузка...</p>;
+  }
 
   return (
-    <div>
+    <div style={{ maxWidth: 500, margin: "auto" }}>
       <h2>Профиль</h2>
-      <ul>
-        <li><strong>ID:</strong> {user.id}</li>
-        <li><strong>Имя пользователя:</strong> {user.username}</li>
-        <li><strong>Email:</strong> {user.email || "—"}</li>
-        <li><strong>Телефон:</strong> {user.phone_number || "—"}</li>
-        <li><strong>Суперпользователь:</strong> {user.is_superuser ? "Да" : "Нет"}</li>
-      </ul>
+      <p><strong>ID:</strong> {user.id}</p>
+      <p><strong>Имя пользователя:</strong> {user.username}</p>
+      <p><strong>Email пользователя:</strong> {user.email}</p>
+      <p><strong>Телефон пользователя:</strong> {user.phone_number}</p>
+      <p><strong>Суперпользователь:</strong> {user.is_superuser ? "Да" : "Нет"}</p>
+
+      <button onClick={handleLogout}>Выйти</button>
     </div>
   );
 }
+
+export default Profile;
