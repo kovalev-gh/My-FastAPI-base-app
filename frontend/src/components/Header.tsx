@@ -11,33 +11,36 @@ const Header = () => {
   };
 
   return (
-    <nav style={{ padding: "1rem", borderBottom: "1px solid #ccc" }}>
-      <Link to="/products" style={{ marginRight: "1rem" }}>📦 Продукты</Link>
+    <nav
+      style={{
+        padding: "1rem",
+        borderBottom: "1px solid #ccc",
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        gap: "1rem",
+      }}
+    >
+      {/* Левая часть — навигация */}
+      <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
+        <Link to="/products">📦 Продукты</Link>
 
-      {user?.is_superuser && (
-        <>
-          <Link to="/products/create" style={{ marginRight: "1rem" }}>➕ Добавить</Link>
-          <Link to="/users" style={{ marginRight: "1rem" }}>👥 Пользователи</Link>
-          <Link to="/orders/all" style={{ marginRight: "1rem" }}>📂 Все заказы</Link> {/* 👈 новая ссылка */}
-        </>
-      )}
+        {user && (
+          <>
+            <Link to="/cart">🛒 Корзина</Link>
+            <Link to="/orders">📋 Заказы</Link>
+            <Link to="/profile">👤 Профиль</Link>
+          </>
+        )}
+      </div>
 
-      {user && (
-        <>
-          <Link to="/cart" style={{ marginRight: "1rem" }}>🛒 Корзина</Link>
-          <Link to="/profile" style={{ marginRight: "1rem" }}>👤 Профиль</Link>
-          <Link to="/orders" style={{ marginRight: "1rem" }}>📋 Заказы</Link>
-
-          <button onClick={handleLogout} style={{ cursor: "pointer" }}>🚪 Выйти</button>
-        </>
-      )}
-
-      {!user && (
-        <>
-          <Link to="/login" style={{ marginRight: "1rem" }}>🔑 Войти</Link>
-          <Link to="/register">📝 Регистрация</Link>
-        </>
-      )}
+      {/* Правая часть — админ + выход */}
+      <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+        {user?.is_superuser && (
+          <Link to="/admin">🛠 Панель администратора</Link>
+        )}
+        {user && <button onClick={handleLogout}>🚪 Выйти</button>}
+      </div>
     </nav>
   );
 };

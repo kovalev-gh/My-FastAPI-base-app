@@ -12,6 +12,7 @@ import OrdersPage from "./pages/OrdersPage";
 import UserList from "./pages/UserList";
 import UserOrdersPage from "./pages/UserOrdersPage";
 import AllOrdersPage from "./pages/AllOrdersPage"; // 👈 путь корректный
+import AdminPanel from "./pages/AdminPanel";
 
 function App() {
   const { user } = useAuth();
@@ -74,6 +75,18 @@ function App() {
             )
           }
         />
+        {/* Панель администратора — только для суперпользователя */}
+        <Route
+          path="/admin"
+          element={
+            user?.is_superuser ? (
+              <AdminPanel />
+            ) : (
+              <Navigate to="/products" replace />
+            )
+          }
+        />
+
 
         {/* Аутентификация */}
         <Route path="/login" element={<Login />} />
