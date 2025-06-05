@@ -17,10 +17,10 @@ from crud import users as users_crud
 from core.security import hash_password
 
 # Значения по умолчанию из переменных окружения или фиксированные
-DEFAULT_EMAIL = getenv("DEFAULT_EMAIL", "admin3@example.com")
-DEFAULT_USERNAME = getenv("DEFAULT_USERNAME", "admin3")
+DEFAULT_EMAIL = getenv("DEFAULT_EMAIL", "admin4@example.com")
+DEFAULT_USERNAME = getenv("DEFAULT_USERNAME", "admin4")
 DEFAULT_PASSWORD = getenv("DEFAULT_PASSWORD", "securepassword123")
-DEFAULT_PHONE_NUMBER = getenv("DEFAULT_PHONE_NUMBER", "1234567893")
+DEFAULT_PHONE_NUMBER = getenv("DEFAULT_PHONE_NUMBER", "1234567894")
 DEFAULT_IS_SUPERUSER = True
 
 

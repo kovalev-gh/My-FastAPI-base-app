@@ -6,6 +6,7 @@ import {
   updateCart,
   clearCart,
 } from "../api/cart";
+import { getProductImages } from "../api/products";
 
 type CartItem = {
   id: number;
@@ -17,8 +18,15 @@ type CartItem = {
   };
 };
 
+type ProductImage = {
+  id: number;
+  url: string;
+  is_main: boolean;
+};
+
 export default function CartPage() {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const [images, setImages] = useState<Record<number, string>>({});
   const [loading, setLoading] = useState(true);
 
   const fetchCart = async () => {
@@ -26,8 +34,18 @@ export default function CartPage() {
     try {
       const data = await getCart();
       setCartItems(data);
+
+      const imageMap: Record<number, string> = {};
+      for (const item of data) {
+        const imgs: ProductImage[] = await getProductImages(item.product_id);
+        const mainImg = imgs.find((img) => img.is_main);
+        if (mainImg) {
+          imageMap[item.product_id] = mainImg.url;
+        }
+      }
+      setImages(imageMap);
     } catch (error) {
-      console.error("Ошибка загрузки корзины", error);
+      console.error("Ошибка загрузки корзины или изображений", error);
     } finally {
       setLoading(false);
     }
@@ -57,7 +75,7 @@ export default function CartPage() {
     try {
       await createOrderFromCart();
       alert("✅ Заказ оформлен!");
-      fetchCart(); // обновим корзину
+      fetchCart();
     } catch (err) {
       alert("❌ Не удалось оформить заказ");
       console.error(err);
@@ -80,18 +98,49 @@ export default function CartPage() {
         <>
           <ul>
             {cartItems.map((item) => (
-              <li key={item.id} style={{ marginBottom: "1rem" }}>
-                <strong>{item.product.title}</strong> —{" "}
-                {item.product.retail_price ?? "нет цены"} ₽ × {item.quantity} шт.
-                <br />
-                <button onClick={() => handleRemove(item.product_id)}>Удалить</button>
-                <button onClick={() => handleUpdate(item.product_id, item.quantity + 1)}>+1</button>
-                <button
-                  onClick={() => handleUpdate(item.product_id, item.quantity - 1)}
-                  disabled={item.quantity <= 1}
+              <li
+                key={item.id}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  marginBottom: "1rem",
+                  gap: "1rem",
+                }}
+              >
+                <div
+                  style={{
+                    width: "80px",
+                    height: "80px",
+                    border: "1px solid #ccc",
+                    display: "flex",
+                    justifyContent: "center",
+                    alignItems: "center",
+                  }}
                 >
-                  -1
-                </button>
+                  {images[item.product_id] ? (
+                    <img
+                      src={images[item.product_id]}
+                      alt={item.product.title}
+                      style={{ maxWidth: "100%", maxHeight: "100%" }}
+                    />
+                  ) : (
+                    <span style={{ fontSize: "2rem", color: "#ccc" }}>📷</span>
+                  )}
+                </div>
+
+                <div>
+                  <strong>{item.product.title}</strong> —{" "}
+                  {item.product.retail_price ?? "нет цены"} ₽ × {item.quantity} шт.
+                  <br />
+                  <button onClick={() => handleRemove(item.product_id)}>Удалить</button>
+                  <button onClick={() => handleUpdate(item.product_id, item.quantity + 1)}>+1</button>
+                  <button
+                    onClick={() => handleUpdate(item.product_id, item.quantity - 1)}
+                    disabled={item.quantity <= 1}
+                  >
+                    -1
+                  </button>
+                </div>
               </li>
             ))}
           </ul>

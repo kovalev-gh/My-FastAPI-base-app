@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getProducts } from "../api/products";
+import { getProducts, getProductImages } from "../api/products";
 import { addToCart } from "../api/cart";
 
 type Product = {
@@ -8,25 +8,42 @@ type Product = {
   retail_price: number | null;
 };
 
+type ProductImage = {
+  id: number;
+  url: string;
+  is_main: boolean;
+};
+
 export default function ProductList() {
   const [products, setProducts] = useState<Product[]>([]);
+  const [images, setImages] = useState<Record<number, string>>({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    getProducts()
-      .then(data => {
-        console.log("🧪 Получено от API:", data);
-        setProducts(data);
-      })
-      .catch(err => {
-        console.error("❌ Ошибка при загрузке товаров:", err?.message ?? err);
+    const fetchProductsAndImages = async () => {
+      try {
+        const productList = await getProducts();
+        setProducts(productList);
 
-        // Безопасно логируем request, если он есть
-        if (err && typeof err === "object" && "request" in err) {
-          console.debug("📡 Ошибка запроса:", (err as any).request);
+        const imageMap: Record<number, string> = {};
+
+        for (const product of productList) {
+          const productImages: ProductImage[] = await getProductImages(product.id);
+          const mainImage = productImages.find((img) => img.is_main);
+          if (mainImage) {
+            imageMap[product.id] = mainImage.url;
+          }
         }
-      })
-      .finally(() => setLoading(false));
+
+        setImages(imageMap);
+      } catch (err) {
+        console.error("Ошибка при загрузке товаров или изображений:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProductsAndImages();
   }, []);
 
   const handleAddToCart = async (productId: number) => {
@@ -48,11 +65,27 @@ export default function ProductList() {
         <p>Нет доступных товаров</p>
       ) : (
         <ul>
-          {products.map(product => (
-            <li key={product.id} style={{ marginBottom: "1rem" }}>
-              <strong>{product.title}</strong> — {product.retail_price ?? "нет цены"} ₽
-              <br />
-              <button onClick={() => handleAddToCart(product.id)}>🛒 В корзину</button>
+          {products.map((product) => (
+            <li key={product.id} style={{ marginBottom: "1.5rem", display: "flex", alignItems: "center", gap: "1rem" }}>
+              {/* Фото товара или заглушка */}
+              <div style={{ width: "80px", height: "80px", border: "1px solid #ccc", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                {images[product.id] ? (
+                  <img
+                    src={images[product.id]}
+                    alt={product.title}
+                    style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }}
+                  />
+                ) : (
+                  <span style={{ fontSize: "2rem", color: "#aaa" }}>📷</span>
+                )}
+              </div>
+
+              {/* Название и кнопка */}
+              <div>
+                <strong>{product.title}</strong> — {product.retail_price ?? "нет цены"} ₽
+                <br />
+                <button onClick={() => handleAddToCart(product.id)}>🛒 В корзину</button>
+              </div>
             </li>
           ))}
         </ul>

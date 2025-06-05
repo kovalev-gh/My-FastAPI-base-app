@@ -36,3 +36,14 @@ export async function createProduct(data: {
     throw error;
   }
 }
+
+// Получение изображений товара
+export async function getProductImages(productId: number) {
+  try {
+    const response = await api.get(`/products/${productId}/images`);
+    return response.data;
+  } catch (error: any) {
+    console.error(`❌ Ошибка при загрузке изображений для товара ${productId}:`, error?.message ?? error);
+    return [];
+  }
+}
