@@ -18,6 +18,7 @@ const Header = () => {
         <>
           <Link to="/products/create" style={{ marginRight: "1rem" }}>➕ Добавить</Link>
           <Link to="/users" style={{ marginRight: "1rem" }}>👥 Пользователи</Link>
+          <Link to="/orders/all" style={{ marginRight: "1rem" }}>📂 Все заказы</Link> {/* 👈 новая ссылка */}
         </>
       )}
 

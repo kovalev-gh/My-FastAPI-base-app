@@ -20,3 +20,14 @@ export async function getOrdersByUser(userId: number) {
   });
   return response.data;
 }
+export async function getOrdersForAdmin() {
+  try {
+    const response = await api.get("/orders"); // FastAPI ручка: GET /api/v1/orders
+    return response.data;
+  } catch (error: any) {
+    if (error.response?.status === 403) {
+      throw new Error("403");
+    }
+    throw new Error("Ошибка загрузки заказов");
+  }
+}

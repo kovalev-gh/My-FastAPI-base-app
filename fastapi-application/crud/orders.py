@@ -58,3 +58,15 @@ async def get_orders_by_user_id(db: AsyncSession, user_id: int):
         .order_by(Order.created_at.desc())
     )
     return result.scalars().all()
+
+
+async def get_all_orders(session: AsyncSession) -> list[Order]:
+    result = await session.execute(
+        select(Order)
+        .options(
+            selectinload(Order.items).selectinload(OrderItem.product),  # 🟢 подгружаем product внутри items
+            selectinload(Order.user),  # 🟢 подгружаем user
+        )
+        .order_by(Order.created_at.desc())
+    )
+    return result.scalars().all()

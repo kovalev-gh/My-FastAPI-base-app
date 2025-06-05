@@ -47,17 +47,14 @@ async def get_orders(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user_required),
 ):
-    try:
-        target_user_id = user_id if user_id is not None else user.id
+    if not user.is_superuser and user_id is not None:
+        raise HTTPException(status_code=403, detail="Недостаточно прав")
 
-        if user_id is not None and not user.is_superuser:
-            raise HTTPException(status_code=403, detail="Недостаточно прав")
+    # 🟡 Если суперпользователь и user_id не указан — получаем все заказы
+    if user.is_superuser and user_id is None:
+        from crud.orders import get_all_orders
+        orders = await get_all_orders(db)
+    else:
+        orders = await get_orders_by_user_id(db=db, user_id=user.id)
 
-        orders = await get_orders_by_user_id(db=db, user_id=target_user_id)
-
-        if user.is_superuser:
-            return [OrderReadSuperuser.model_validate(o) for o in orders]
-        return [OrderReadUser.model_validate(o) for o in orders]
-
-    except SQLAlchemyError:
-        raise HTTPException(status_code=500, detail="Internal server error")
+    return [OrderReadSuperuser.model_validate(o) for o in orders]

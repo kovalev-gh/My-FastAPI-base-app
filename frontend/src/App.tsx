@@ -11,6 +11,7 @@ import CartPage from "./pages/CartPage";
 import OrdersPage from "./pages/OrdersPage";
 import UserList from "./pages/UserList";
 import UserOrdersPage from "./pages/UserOrdersPage";
+import AllOrdersPage from "./pages/AllOrdersPage"; // 👈 путь корректный
 
 function App() {
   const { user } = useAuth();
@@ -62,12 +63,24 @@ function App() {
           }
         />
 
+        {/* Все заказы — только для суперпользователя */}
+        <Route
+          path="/orders/all"
+          element={
+            user?.is_superuser ? (
+              <AllOrdersPage />
+            ) : (
+              <Navigate to="/products" replace />
+            )
+          }
+        />
+
         {/* Аутентификация */}
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/profile" element={<Profile />} />
 
-        {/* Корзина и заказы */}
+        {/* Корзина и мои заказы */}
         <Route path="/cart" element={<CartPage />} />
         <Route path="/orders" element={<OrdersPage />} />
 
