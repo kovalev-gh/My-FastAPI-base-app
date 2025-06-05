@@ -1,29 +1,26 @@
-// src/api/products.ts
-import axios from "axios";
-
-// Базовый URL для всех запросов к backend API
-const API_BASE_URL = "/api/v1"; // <-- теперь без localhost!
+import api from "./axios";
 
 // Получение списка всех товаров
 export async function getProducts() {
   try {
-    const response = await axios.get(`${API_BASE_URL}/products`);
+    const response = await api.get("/products");
 
-    // Убедись, что бекенд возвращает именно массив:
-    // если [{...}, {...}] — оставляем так
-    // если { products: [...] } — верни response.data.products
     if (Array.isArray(response.data)) {
-  return response.data;
-} else {
-  console.error("❌ Ожидался массив, а пришло:", response.data);
-  return [];
-}
-  } catch (error) {
-    console.error("❌ Ошибка при получении продуктов:", error);
-    return []; // возвращаем пустой список в случае ошибки
+      return response.data;
+    } else {
+      console.error("❌ Ожидался массив, а получено:", response.data);
+      return [];
+    }
+  } catch (error: any) {
+    console.error("❌ Ошибка при получении товаров:", error?.message ?? error);
+    if (error?.request) {
+      console.debug("🔍 Запрос:", error.request);
+    }
+    return [];
   }
 }
 
+// Создание нового товара (только для суперпользователя)
 export async function createProduct(data: {
   title: string;
   description: string;
@@ -31,13 +28,11 @@ export async function createProduct(data: {
   opt_price: number;
   quantity: number;
 }) {
-  const token = localStorage.getItem("token");
-
-  const response = await axios.post("/api/v1/products", data, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
-
-  return response.data;
+  try {
+    const response = await api.post("/products", data);
+    return response.data;
+  } catch (error: any) {
+    console.error("❌ Ошибка при создании продукта:", error?.message ?? error);
+    throw error;
+  }
 }

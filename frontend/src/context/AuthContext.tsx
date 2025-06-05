@@ -1,4 +1,3 @@
-// src/context/AuthContext.tsx
 import { createContext, useContext, useEffect, useState } from "react";
 import api from "../api/axios";
 
@@ -52,8 +51,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         },
       });
       setUser(response.data);
-    } catch (error) {
-      console.error("Ошибка при получении профиля", error);
+    } catch (error: any) {
+      console.error("Ошибка при получении профиля:", error?.response ?? error?.message ?? error);
       setUser(null);
     } finally {
       setLoading(false);

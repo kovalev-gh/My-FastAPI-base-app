@@ -18,7 +18,14 @@ export default function ProductList() {
         console.log("🧪 Получено от API:", data);
         setProducts(data);
       })
-      .catch(err => console.error("❌ Ошибка при загрузке товаров:", err))
+      .catch(err => {
+        console.error("❌ Ошибка при загрузке товаров:", err?.message ?? err);
+
+        // Безопасно логируем request, если он есть
+        if (err && typeof err === "object" && "request" in err) {
+          console.debug("📡 Ошибка запроса:", (err as any).request);
+        }
+      })
       .finally(() => setLoading(false));
   }, []);
 

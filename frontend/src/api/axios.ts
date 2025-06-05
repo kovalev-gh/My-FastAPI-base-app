@@ -1,5 +1,5 @@
 // src/api/axios.ts
-import axios from "axios";
+import axios, { AxiosRequestConfig, AxiosRequestHeaders } from "axios";
 
 // Создаём экземпляр axios с базовым URL
 const api = axios.create({
@@ -7,22 +7,24 @@ const api = axios.create({
 });
 
 // Добавляем интерсептор запроса для токена авторизации
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem("token");
+api.interceptors.request.use(
+  (config: AxiosRequestConfig) => {
+    const token = localStorage.getItem("token");
 
-  if (token) {
-    config.headers = {
-      ...config.headers,
-      Authorization: `Bearer ${token}`,
-    };
-    console.log("🔐 Token attached:", token);
-  } else {
-    console.warn("⚠️ Токен не найден в localStorage");
-  }
+    if (token) {
+      if (!config.headers) {
+        config.headers = {} as AxiosRequestHeaders;
+      }
 
-  return config;
-}, (error) => {
-  return Promise.reject(error);
-});
+      (config.headers as AxiosRequestHeaders).Authorization = `Bearer ${token}`;
+      console.log("🔐 Token attached:", token);
+    } else {
+      console.warn("⚠️ Токен не найден в localStorage");
+    }
+
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
 
 export default api;

@@ -21,10 +21,10 @@ function Profile() {
         const response = await api.get("/auth/me");
         setUser(response.data);
       } catch (err: any) {
-        console.error("Ошибка при получении пользователя:", err);
+        console.error("Ошибка при получении пользователя:", err?.response ?? err?.message ?? err);
         setError("Не удалось получить информацию о пользователе");
-        localStorage.removeItem("token"); // очистка токена
-        navigate("/login"); // редирект
+        localStorage.removeItem("token");
+        navigate("/login");
       }
     };
 
@@ -55,10 +55,9 @@ function Profile() {
       <p><strong>Имя пользователя:</strong> {user.username}</p>
       {user.email && <p><strong>Email:</strong> {user.email}</p>}
       {user.phone_number && <p><strong>Телефон:</strong> {user.phone_number}</p>}
-      {/* Показываем только если is_superuser === true */}
       {user.is_superuser && (
-      <p style={{ color: "green", fontWeight: "bold" }}>Суперпользователь: Да</p>
-    )}
+        <p style={{ color: "green", fontWeight: "bold" }}>Суперпользователь: Да</p>
+      )}
 
       <button onClick={handleLogout}>Выйти</button>
     </div>
