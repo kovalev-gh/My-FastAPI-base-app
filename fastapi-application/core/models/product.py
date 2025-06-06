@@ -10,6 +10,7 @@ class Product(IntIdPkMixin, Base):
     opt_price: Mapped[int | None] = mapped_column(Integer, nullable=True)
     quantity: Mapped[int | None] = mapped_column(Integer, nullable=True)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    is_deleted: Mapped[bool] = mapped_column(Boolean, nullable=True)
 
     # связь с изображениями
     images: Mapped[list["ProductImage"]] = relationship(
