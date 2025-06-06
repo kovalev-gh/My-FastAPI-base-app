@@ -14,6 +14,7 @@ from core.models import db_helper
 from core.models.user import User
 from core.schemas.product import (
     ProductCreate,
+    ProductUpdate,
     ProductReadUser,
     ProductReadSuperuser,
 )
@@ -69,16 +70,19 @@ async def read_product(
     return ProductReadUser.model_validate(product)
 
 
-@router.put("/{product_id}", summary="Обновить продукт по ID")
+@router.patch("/{product_id}", response_model=ProductReadSuperuser, summary="Обновить продукт по ID")
 async def update_product_endpoint(
     product_id: int,
+    update_data: ProductUpdate,
     session: Annotated[AsyncSession, Depends(db_helper.session_getter)],
     current_superuser: Annotated[User, Depends(get_current_superuser)],
-    updated_data: dict = Body(...),
-
 ):
-    updated = await update_product(session=session, product_id=product_id, updated_data=updated_data)
-    return ProductReadSuperuser.model_validate(updated)
+    updated_product = await update_product(
+        session=session,
+        product_id=product_id,
+        update_data=update_data.model_dump(exclude_unset=True),
+    )
+    return ProductReadSuperuser.model_validate(updated_product)
 
 
 @router.delete("/{product_id}", summary="Удалить продукт по ID")
@@ -90,7 +94,7 @@ async def delete_product_endpoint(
     success = await delete_product(session=session, product_id=product_id)
     if not success:
         raise HTTPException(status_code=404, detail="Продукт не найден")
-    return {"message": "Продукт удалён"}
+    return {"message": "Продукт удален"}
 
 
 @router.post("/{product_id}/upload-image", summary="Загрузить изображение в подпапку")

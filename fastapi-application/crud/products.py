@@ -3,7 +3,7 @@ from fastapi import HTTPException, UploadFile
 from sqlalchemy import select, update, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 from core.models.product import Product, ProductImage
-from core.schemas.product import ProductCreate
+from core.schemas.product import ProductCreate, ProductUpdate
 import os, uuid, shutil
 
 
@@ -35,13 +35,21 @@ async def create_product(session: AsyncSession, product_create: ProductCreate) -
     return product
 
 
-async def update_product(session: AsyncSession, product_id: int, updated_data: dict) -> Product:
+async def update_product(session: AsyncSession, product_id: int, update_data: dict) -> Product:
     result = await session.execute(select(Product).where(Product.id == product_id))
     product = result.scalar_one_or_none()
     if not product:
         raise HTTPException(status_code=404, detail="Продукт не найден")
 
-    for key, value in updated_data.items():
+    # Проверка на дублирующий title
+    if "title" in update_data:
+        existing = await session.execute(
+            select(Product).where(Product.title == update_data["title"], Product.id != product_id)
+        )
+        if existing.scalar_one_or_none():
+            raise HTTPException(status_code=400, detail=f"Продукт с названием '{update_data['title']}' уже существует.")
+
+    for key, value in update_data.items():
         setattr(product, key, value)
 
     await session.commit()
@@ -50,8 +58,7 @@ async def update_product(session: AsyncSession, product_id: int, updated_data: d
 
 
 async def delete_product(session: AsyncSession, product_id: int) -> bool:
-    result = await session.execute(select(Product).where(Product.id == product_id))
-    product = result.scalar_one_or_none()
+    product = await session.get(Product, product_id)
     if not product:
         return False
 
