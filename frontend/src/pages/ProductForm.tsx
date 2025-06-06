@@ -8,8 +8,17 @@ export default function ProductForm() {
   const [optPrice, setOptPrice] = useState(0);
   const [quantity, setQuantity] = useState(0);
   const [subfolder, setSubfolder] = useState("");
-  const [file, setFile] = useState<File | null>(null);
+  const [files, setFiles] = useState<File[]>([]);
+  const [filePreviews, setFilePreviews] = useState<string[]>([]);
+  const [mainImageIndex, setMainImageIndex] = useState<number | null>(null);
   const [message, setMessage] = useState("");
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFiles = Array.from(e.target.files ?? []);
+    setFiles(selectedFiles);
+    setFilePreviews(selectedFiles.map((file) => URL.createObjectURL(file)));
+    setMainImageIndex(0); // По умолчанию первое изображение — главное
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -24,9 +33,17 @@ export default function ProductForm() {
         quantity,
       });
 
-      if (file && subfolder) {
-        const imageUpload = await uploadProductImage(product.id, file, subfolder);
-        await setMainImage(imageUpload.image_id);
+      if (files.length > 0 && subfolder) {
+        const uploadedImageIds: string[] = [];
+
+        for (const file of files) {
+          const result = await uploadProductImage(product.id, file, subfolder);
+          uploadedImageIds.push(result.image_id);
+        }
+
+        if (mainImageIndex !== null && uploadedImageIds[mainImageIndex]) {
+          await setMainImage(uploadedImageIds[mainImageIndex]);
+        }
       }
 
       setMessage("✅ Товар успешно добавлен!");
@@ -36,7 +53,9 @@ export default function ProductForm() {
       setOptPrice(0);
       setQuantity(0);
       setSubfolder("");
-      setFile(null);
+      setFiles([]);
+      setFilePreviews([]);
+      setMainImageIndex(null);
     } catch (error) {
       console.error(error);
       setMessage("❌ Ошибка при создании товара");
@@ -110,13 +129,44 @@ export default function ProductForm() {
         </div>
 
         <div style={{ marginBottom: "1rem" }}>
-          <label>Изображение товара:</label><br />
+          <label>Изображения товара:</label><br />
           <input
             type="file"
             accept="image/*"
-            onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+            multiple
+            onChange={handleFileChange}
           />
         </div>
+
+        {filePreviews.length > 0 && (
+          <div style={{ marginBottom: "1rem" }}>
+            <label>Выберите главное изображение:</label>
+            <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
+              {filePreviews.map((preview, index) => (
+                <div key={index} style={{ textAlign: "center" }}>
+                  <img
+                    src={preview}
+                    alt={`preview-${index}`}
+                    width={100}
+                    height={100}
+                    style={{
+                      border: mainImageIndex === index ? "2px solid green" : "1px solid #ccc",
+                      objectFit: "cover",
+                      borderRadius: "8px",
+                    }}
+                  /><br />
+                  <input
+                    type="radio"
+                    name="mainImage"
+                    checked={mainImageIndex === index}
+                    onChange={() => setMainImageIndex(index)}
+                  />
+                  <div style={{ fontSize: "0.8rem" }}>{files[index]?.name}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         <button type="submit">Создать</button>
       </form>
