@@ -4,20 +4,24 @@ import { createProduct, uploadProductImage, setMainImage } from "../api/products
 export default function ProductForm() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [retailPrice, setRetailPrice] = useState(0);
-  const [optPrice, setOptPrice] = useState(0);
-  const [quantity, setQuantity] = useState(0);
+  const [retailPrice, setRetailPrice] = useState("0");
+  const [optPrice, setOptPrice] = useState("0");
+  const [quantity, setQuantity] = useState("0");
   const [subfolder, setSubfolder] = useState("");
   const [files, setFiles] = useState<File[]>([]);
   const [filePreviews, setFilePreviews] = useState<string[]>([]);
-  const [mainImageIndex, setMainImageIndex] = useState<number | null>(null);
+  const [mainImageIndex, setMainImageIndex] = useState<number | null>(0);
   const [message, setMessage] = useState("");
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFiles = Array.from(e.target.files ?? []);
     setFiles(selectedFiles);
     setFilePreviews(selectedFiles.map((file) => URL.createObjectURL(file)));
-    setMainImageIndex(0); // По умолчанию первое изображение — главное
+    setMainImageIndex(0);
+  };
+
+  const normalizeNumberInput = (value: string) => {
+    return value.replace(/^0+(?!$)/, "").replace(/\D/g, "") || "0";
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -28,9 +32,9 @@ export default function ProductForm() {
       const product = await createProduct({
         title,
         description,
-        retail_price: retailPrice,
-        opt_price: optPrice,
-        quantity,
+        retail_price: parseInt(retailPrice, 10),
+        opt_price: parseInt(optPrice, 10),
+        quantity: parseInt(quantity, 10),
       });
 
       if (files.length > 0 && subfolder) {
@@ -49,9 +53,9 @@ export default function ProductForm() {
       setMessage("✅ Товар успешно добавлен!");
       setTitle("");
       setDescription("");
-      setRetailPrice(0);
-      setOptPrice(0);
-      setQuantity(0);
+      setRetailPrice("0");
+      setOptPrice("0");
+      setQuantity("0");
       setSubfolder("");
       setFiles([]);
       setFilePreviews([]);
@@ -86,36 +90,33 @@ export default function ProductForm() {
         <div style={{ marginBottom: "1rem" }}>
           <label>Розничная цена:</label><br />
           <input
-            type="number"
-            min="0"
+            type="text"
+            inputMode="numeric"
+            pattern="[0-9]*"
             value={retailPrice}
-            onChange={(e) =>
-              setRetailPrice(parseInt(e.target.value.replace(/^0+/, "") || "0", 10))
-            }
+            onChange={(e) => setRetailPrice(normalizeNumberInput(e.target.value))}
           />
         </div>
 
         <div style={{ marginBottom: "1rem" }}>
           <label>Оптовая цена:</label><br />
           <input
-            type="number"
-            min="0"
+            type="text"
+            inputMode="numeric"
+            pattern="[0-9]*"
             value={optPrice}
-            onChange={(e) =>
-              setOptPrice(parseInt(e.target.value.replace(/^0+/, "") || "0", 10))
-            }
+            onChange={(e) => setOptPrice(normalizeNumberInput(e.target.value))}
           />
         </div>
 
         <div style={{ marginBottom: "1rem" }}>
           <label>Количество:</label><br />
           <input
-            type="number"
-            min="0"
+            type="text"
+            inputMode="numeric"
+            pattern="[0-9]*"
             value={quantity}
-            onChange={(e) =>
-              setQuantity(parseInt(e.target.value.replace(/^0+/, "") || "0", 10))
-            }
+            onChange={(e) => setQuantity(normalizeNumberInput(e.target.value))}
           />
         </div>
 
