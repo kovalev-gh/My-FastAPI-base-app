@@ -6,6 +6,7 @@ from fastapi import (
     UploadFile,
     File,
     Query,
+    Body
 )
 from sqlalchemy.ext.asyncio import AsyncSession
 from api.api_v1.deps import get_current_user_optional, get_current_superuser
@@ -20,6 +21,8 @@ from crud.products import (
     get_all_products,
     get_product_by_id,
     create_product,
+    update_product,
+    delete_product,
     save_uploaded_image_to_product,
     delete_product_image,
     set_main_product_image,
@@ -66,6 +69,30 @@ async def read_product(
     return ProductReadUser.model_validate(product)
 
 
+@router.put("/{product_id}", summary="Обновить продукт по ID")
+async def update_product_endpoint(
+    product_id: int,
+    session: Annotated[AsyncSession, Depends(db_helper.session_getter)],
+    current_superuser: Annotated[User, Depends(get_current_superuser)],
+    updated_data: dict = Body(...),
+
+):
+    updated = await update_product(session=session, product_id=product_id, updated_data=updated_data)
+    return ProductReadSuperuser.model_validate(updated)
+
+
+@router.delete("/{product_id}", summary="Удалить продукт по ID")
+async def delete_product_endpoint(
+    product_id: int,
+    session: Annotated[AsyncSession, Depends(db_helper.session_getter)],
+    current_superuser: Annotated[User, Depends(get_current_superuser)],
+):
+    success = await delete_product(session=session, product_id=product_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Продукт не найден")
+    return {"message": "Продукт удалён"}
+
+
 @router.post("/{product_id}/upload-image", summary="Загрузить изображение в подпапку")
 async def upload_product_image(
     session: Annotated[AsyncSession, Depends(db_helper.session_getter)],
@@ -86,7 +113,7 @@ async def upload_product_image(
 
     return {
         "message": "Изображение загружено",
-        "image_path": image.image_path,  # ❗ Без лишнего слеша
+        "image_path": image.image_path,
         "product_id": image.product_id,
         "image_id": image.id,
     }
@@ -125,7 +152,7 @@ async def get_product_images_endpoint(
     return [
         {
             "id": img.id,
-            "image_path": img.image_path.lstrip("/"),  # 🔧 Удаление лишнего слеша
+            "image_path": img.image_path.lstrip("/"),
             "is_main": img.is_main
         }
         for img in images
