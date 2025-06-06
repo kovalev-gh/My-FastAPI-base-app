@@ -8,7 +8,7 @@ import os, uuid, shutil
 
 
 async def get_all_products(session: AsyncSession) -> Sequence[Product]:
-    stmt = select(Product).order_by(Product.id)
+    stmt = select(Product).where(Product.is_deleted == False).order_by(Product.id)
     result = await session.scalars(stmt)
     return result.all()
 
@@ -62,7 +62,7 @@ async def delete_product(session: AsyncSession, product_id: int) -> bool:
     if not product:
         return False
 
-    await session.delete(product)
+    product.is_deleted = True
     await session.commit()
     return True
 
