@@ -86,7 +86,7 @@ async def upload_product_image(
 
     return {
         "message": "Изображение загружено",
-        "image_path": f"/{image.image_path}",
+        "image_path": image.image_path,  # ❗ Без лишнего слеша
         "product_id": image.product_id,
         "image_id": image.id,
     }
@@ -125,7 +125,7 @@ async def get_product_images_endpoint(
     return [
         {
             "id": img.id,
-            "image_path": f"/{img.image_path}",
+            "image_path": img.image_path.lstrip("/"),  # 🔧 Удаление лишнего слеша
             "is_main": img.is_main
         }
         for img in images

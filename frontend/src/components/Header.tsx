@@ -18,13 +18,12 @@ const Header = () => {
         display: "flex",
         justifyContent: "space-between",
         alignItems: "center",
-        gap: "1rem",
+        flexWrap: "wrap",
       }}
     >
       {/* Левая часть — навигация */}
       <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
         <Link to="/products">📦 Продукты</Link>
-
         {user && (
           <>
             <Link to="/cart">🛒 Корзина</Link>
@@ -34,12 +33,20 @@ const Header = () => {
         )}
       </div>
 
-      {/* Правая часть — админ + выход */}
-      <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
-        {user?.is_superuser && (
-          <Link to="/admin">🛠 Панель администратора</Link>
+      {/* Правая часть — админ и логин/логаут */}
+      <div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
+        {user?.is_superuser && <Link to="/admin">🛠 Панель администратора</Link>}
+
+        {user ? (
+          <button onClick={handleLogout} style={{ cursor: "pointer" }}>
+            🚪 Выйти
+          </button>
+        ) : (
+          <>
+            <Link to="/login">🔑 Войти</Link>
+            <Link to="/register">📝 Регистрация</Link>
+          </>
         )}
-        {user && <button onClick={handleLogout}>🚪 Выйти</button>}
       </div>
     </nav>
   );
