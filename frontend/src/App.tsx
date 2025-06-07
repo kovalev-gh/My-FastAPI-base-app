@@ -11,7 +11,7 @@ import CartPage from "./pages/CartPage";
 import OrdersPage from "./pages/OrdersPage";
 import UserList from "./pages/UserList";
 import UserOrdersPage from "./pages/UserOrdersPage";
-import AllOrdersPage from "./pages/AllOrdersPage"; // 👈 путь корректный
+import AllOrdersPage from "./pages/AllOrdersPage";
 import AdminPanel from "./pages/AdminPanel";
 
 function App() {
@@ -34,6 +34,30 @@ function App() {
           element={
             user?.is_superuser ? (
               <ProductForm />
+            ) : (
+              <Navigate to="/products" replace />
+            )
+          }
+        />
+
+        {/* 🔽 Новый маршрут: редактирование продукта */}
+        <Route
+          path="/admin/edit-product/:productId"
+          element={
+            user?.is_superuser ? (
+              <ProductForm />
+            ) : (
+              <Navigate to="/products" replace />
+            )
+          }
+        />
+
+        {/* 🔽 Новый маршрут: список продуктов для редактирования */}
+        <Route
+          path="/admin/products"
+          element={
+            user?.is_superuser ? (
+              <ProductList />
             ) : (
               <Navigate to="/products" replace />
             )
@@ -75,6 +99,7 @@ function App() {
             )
           }
         />
+
         {/* Панель администратора — только для суперпользователя */}
         <Route
           path="/admin"
@@ -86,7 +111,6 @@ function App() {
             )
           }
         />
-
 
         {/* Аутентификация */}
         <Route path="/login" element={<Login />} />

@@ -12,6 +12,9 @@ export default function AdminPanel() {
           <Link to="/products/create">➕ Добавить продукт</Link>
         </li>
         <li>
+          <Link to="/admin/products">📝 Редактировать продукты</Link>
+        </li>
+        <li>
           <Link to="/orders/all">📋 Все заказы</Link>
         </li>
       </ul>

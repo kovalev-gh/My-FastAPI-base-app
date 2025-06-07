@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { getProducts, getProductImages } from "../api/products";
 import { addToCart } from "../api/cart";
+import { Link } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 
 type Product = {
   id: number;
@@ -17,6 +19,7 @@ type ProductImage = {
 const API_URL = "http://localhost:8000";
 
 export default function ProductList() {
+  const { user } = useAuth();
   const [products, setProducts] = useState<Product[]>([]);
   const [images, setImages] = useState<Record<number, string>>({});
   const [loading, setLoading] = useState(true);
@@ -34,7 +37,6 @@ export default function ProductList() {
           const mainImage = productImages.find((img) => Boolean(img.is_main));
 
           if (mainImage && mainImage.url) {
-            // 🔧 Исправляем путь
             const correctedPath = mainImage.url.replace("/api/v1media", "/media");
             imageMap[product.id] = `${API_URL}${correctedPath}`;
           }
@@ -111,14 +113,21 @@ export default function ProductList() {
               </div>
 
               <div style={{ flexGrow: 1 }}>
-                <strong>{product.title}</strong>
+                <Link to={`/products/${product.id}`} style={{ textDecoration: "none", color: "black" }}>
+                  <strong>{product.title}</strong>
+                </Link>
                 <div style={{ fontSize: "0.9rem", color: "#555" }}>
                   {product.retail_price ?? "нет цены"} ₽
                 </div>
               </div>
 
-              <div>
+              <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
                 <button onClick={() => handleAddToCart(product.id)}>🛒 В корзину</button>
+                {user?.is_superuser && (
+                  <Link to={`/admin/edit-product/${product.id}`} style={{ fontSize: "0.85rem" }}>
+                    ✏️ Редактировать
+                  </Link>
+                )}
               </div>
             </li>
           ))}
