@@ -24,6 +24,8 @@ type ProductImage = {
   is_main: boolean;
 };
 
+const API_URL = "http://localhost:8000";
+
 export default function CartPage() {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [images, setImages] = useState<Record<number, string>>({});
@@ -40,7 +42,8 @@ export default function CartPage() {
         const imgs: ProductImage[] = await getProductImages(item.product_id);
         const mainImg = imgs.find((img) => img.is_main);
         if (mainImg) {
-          imageMap[item.product_id] = mainImg.url;
+          const correctedPath = mainImg.url.replace("/api/v1media", "/media");
+          imageMap[item.product_id] = `${API_URL}${correctedPath}`;
         }
       }
       setImages(imageMap);
@@ -115,13 +118,14 @@ export default function CartPage() {
                     display: "flex",
                     justifyContent: "center",
                     alignItems: "center",
+                    backgroundColor: "#fafafa",
                   }}
                 >
                   {images[item.product_id] ? (
                     <img
                       src={images[item.product_id]}
                       alt={item.product.title}
-                      style={{ maxWidth: "100%", maxHeight: "100%" }}
+                      style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }}
                     />
                   ) : (
                     <span style={{ fontSize: "2rem", color: "#ccc" }}>📷</span>
