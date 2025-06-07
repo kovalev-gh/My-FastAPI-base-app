@@ -1,6 +1,6 @@
 import logging
 from typing import Literal
-from pydantic import AmqpDsn, BaseModel, PostgresDsn, EmailStr, Field
+from pydantic import AmqpDsn, BaseModel, PostgresDsn, EmailStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 LOG_DEFAULT_FORMAT = (
@@ -75,6 +75,16 @@ class SmtpConfig(BaseModel):
         return self.from_email or self.user
 
 
+class FrontendConfig(BaseModel):
+    url: str = "http://localhost:5173"
+
+
+class SecurityConfig(BaseModel):
+    secret_key: str
+    access_token_expire_minutes: int = 60
+    refresh_token_expire_days: int = 7
+
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=(".env.template", ".env"),
@@ -89,7 +99,9 @@ class Settings(BaseSettings):
     api: ApiPrefix = ApiPrefix()
     taskiq: TaskiqConfig = TaskiqConfig()
     db: DatabaseConfig
-    smtp: SmtpConfig  # 👈 вот теперь всё в отдельной вложенной модели
+    smtp: SmtpConfig
+    frontend: FrontendConfig
+    security: SecurityConfig
 
 
 settings = Settings()

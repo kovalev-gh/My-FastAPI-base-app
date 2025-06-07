@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from core.models import db_helper
 from core.models.user import User
 from crud.users import get_user_by_username
-from core.security import SECRET_KEY, ALGORITHM  # или подставь напрямую
+from core.config import settings  # ✅ Получаем секрет из настроек
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/token", auto_error=False)
 
@@ -30,7 +30,7 @@ async def get_current_user_required(
         )
 
     try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        payload = jwt.decode(token, settings.security.secret_key, algorithms=["HS256"])
         username: str | None = payload.get("sub")
         if username is None:
             raise HTTPException(status_code=401, detail="Невалидный токен")
@@ -64,12 +64,11 @@ async def get_current_user_optional(
     if token is None:
         return None
     try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        payload = jwt.decode(token, settings.security.secret_key, algorithms=["HS256"])
         username: str | None = payload.get("sub")
         if username is None:
             return None
     except JWTError:
         return None
 
-    user = await get_user_by_username(db, username=username)
-    return user
+    return await get_user_by_username(db, username=username)
