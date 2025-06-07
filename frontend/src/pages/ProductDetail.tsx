@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
 import { getProductById, getProductImages } from "../api/products";
 import { addToCart } from "../api/cart";
+import { useAuth } from "../context/AuthContext";
 
 type Product = {
   id: number;
@@ -22,6 +23,7 @@ const API_URL = "http://localhost:8000";
 
 export default function ProductDetail() {
   const { id } = useParams<{ id: string }>();
+  const { user } = useAuth(); // 🔐 получаем пользователя
   const [product, setProduct] = useState<Product | null>(null);
   const [images, setImages] = useState<ProductImage[]>([]);
   const [loading, setLoading] = useState(true);
@@ -40,7 +42,7 @@ export default function ProductDetail() {
             ...img,
             url: `${API_URL}${img.url.replace("/api/v1media", "/media")}`,
           }))
-          .sort((a, b) => (b.is_main ? 1 : 0) - (a.is_main ? 1 : 0)); // Главная картинка первой
+          .sort((a, b) => (b.is_main ? 1 : 0) - (a.is_main ? 1 : 0));
         setImages(normalized);
       } catch (err) {
         console.error("Ошибка при загрузке товара:", err);
@@ -91,12 +93,34 @@ export default function ProductDetail() {
 
       <p><strong>Описание:</strong><br />{product.description}</p>
       <p><strong>Розничная цена:</strong> {product.retail_price} ₽</p>
-      <p><strong>Оптовая цена:</strong> {product.opt_price} ₽</p>
+
+      {/* 🔒 Оптовая цена только для админа */}
+      {user?.is_superuser && (
+        <p><strong>Оптовая цена:</strong> {product.opt_price} ₽</p>
+      )}
+
       <p><strong>В наличии:</strong> {product.quantity} шт.</p>
 
-      <button onClick={handleAddToCart} style={{ marginTop: "1rem" }}>
-        🛒 Добавить в корзину
-      </button>
+      <div style={{ marginTop: "1rem", display: "flex", gap: "1rem", alignItems: "center" }}>
+        <button onClick={handleAddToCart}>🛒 Добавить в корзину</button>
+
+        {/* ✏️ Кнопка редактирования — только для админа */}
+        {user?.is_superuser && (
+          <Link
+            to={`/admin/edit-product/${product.id}`}
+            style={{
+              padding: "0.4rem 0.6rem",
+              border: "1px solid #888",
+              borderRadius: 4,
+              textDecoration: "none",
+              fontSize: "0.9rem",
+            }}
+            title="Редактировать товар"
+          >
+            ✏️ Редактировать
+          </Link>
+        )}
+      </div>
     </div>
   );
 }
