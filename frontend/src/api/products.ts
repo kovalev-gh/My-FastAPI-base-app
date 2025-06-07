@@ -1,24 +1,12 @@
 import api from "./axios";
 
 // Получение списка всех товаров
-export async function getProducts() {
-  try {
-    const response = await api.get("/products");
-
-    if (Array.isArray(response.data)) {
-      return response.data;
-    } else {
-      console.error("❌ Ожидался массив, а получено:", response.data);
-      return [];
-    }
-  } catch (error: any) {
-    console.error("❌ Ошибка при получении товаров:", error?.message ?? error);
-    if (error?.request) {
-      console.debug("🔍 Запрос:", error.request);
-    }
-    return [];
-  }
+// src/api/products.ts
+export async function getProducts(limit = 10, offset = 0) {
+  const response = await api.get(`/products?limit=${limit}&offset=${offset}`);
+  return response.data; // ✅ должен вернуть { items: [], total: number }
 }
+
 
 // Получение товара по ID
 export async function getProductById(productId: number | string) {

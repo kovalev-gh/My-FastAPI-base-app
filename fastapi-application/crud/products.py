@@ -1,6 +1,6 @@
-from typing import Sequence, List
+from typing import Sequence, List, Tuple
 from fastapi import HTTPException, UploadFile
-from sqlalchemy import select, update, delete
+from sqlalchemy import select, update, delete, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from core.models.product import Product, ProductImage
 from core.schemas.product import ProductCreate, ProductUpdate
@@ -11,6 +11,23 @@ async def get_all_products(session: AsyncSession) -> Sequence[Product]:
     stmt = select(Product).where(Product.is_deleted == False).order_by(Product.id)
     result = await session.scalars(stmt)
     return result.all()
+
+
+async def get_products_with_pagination(
+    session: AsyncSession, limit: int, offset: int
+) -> Tuple[List[Product], int]:
+    total_result = await session.execute(select(func.count()).select_from(Product).where(Product.is_deleted == False))
+    total = total_result.scalar_one()
+
+    result = await session.execute(
+        select(Product)
+        .where(Product.is_deleted == False)
+        .order_by(Product.id)
+        .offset(offset)
+        .limit(limit)
+    )
+    products = result.scalars().all()
+    return products, total
 
 
 async def get_product_by_id(session: AsyncSession, product_id: int) -> Product | None:
@@ -41,7 +58,6 @@ async def update_product(session: AsyncSession, product_id: int, update_data: di
     if not product:
         raise HTTPException(status_code=404, detail="Продукт не найден")
 
-    # Проверка на дублирующий title
     if "title" in update_data:
         existing = await session.execute(
             select(Product).where(Product.title == update_data["title"], Product.id != product_id)

@@ -20,6 +20,7 @@ from core.schemas.product import (
 )
 from crud.products import (
     get_all_products,
+    get_products_with_pagination,
     get_product_by_id,
     create_product,
     update_product,
@@ -33,17 +34,29 @@ from crud.products import (
 router = APIRouter(tags=["Product"])
 
 
-@router.get("", summary="Список продуктов (для всех пользователей)")
+@router.get("", summary="Список продуктов с пагинацией")
 async def get_products(
     session: Annotated[AsyncSession, Depends(db_helper.session_getter)],
     current_user: Annotated[User | None, Depends(get_current_user_optional)],
+    limit: int = Query(10, ge=1, le=100),
+    offset: int = Query(0, ge=0),
 ):
-    products = await get_all_products(session=session)
+    products, total = await get_products_with_pagination(session=session, limit=limit, offset=offset)
 
-    if current_user and current_user.is_superuser:
-        return [ProductReadSuperuser.model_validate(p) for p in products]
-    return [ProductReadUser.model_validate(p) for p in products]
+    items = [
+        ProductReadSuperuser.model_validate(p) if current_user and current_user.is_superuser
+        else ProductReadUser.model_validate(p)
+        for p in products
+    ]
 
+    return {
+        "total": total,
+        "items": [
+            ProductReadSuperuser.model_validate(p) if current_user and current_user.is_superuser
+            else ProductReadUser.model_validate(p)
+            for p in products
+        ]
+    }
 
 @router.post("", response_model=ProductReadSuperuser, summary="Создание продукта (только для суперпользователя)")
 async def create_product_endpoint(
