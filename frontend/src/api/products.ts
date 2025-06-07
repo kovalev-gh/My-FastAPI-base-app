@@ -1,22 +1,22 @@
 import api from "./axios";
 
 // Получение списка всех товаров
-// src/api/products.ts
-export async function getProducts() {
-  const response = await api.get("/products");
+export async function getProducts(limit = 10, offset = 0) {
+  const response = await api.get("/products", {
+    params: { limit, offset }
+  });
 
   const data = response.data;
 
-  if (Array.isArray(data)) {
-    return data;
+  if (data && Array.isArray(data.items)) {
+    return {
+      items: data.items,
+      total: data.total,
+    };
   }
 
-  if (Array.isArray(data.items)) {
-    return data.items;
-  }
-
-  console.error("❌ Неправильный формат данных:", data);
-  return [];
+  console.error("❌ Неправильный формат ответа:", data);
+  return { items: [], total: 0 };
 }
 
 
