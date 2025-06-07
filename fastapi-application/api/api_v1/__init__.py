@@ -12,6 +12,8 @@ from .carts import router as carts_router
 
 from .orders import router as orders_router
 
+from .categories import router as categories_router
+
 router = APIRouter(
     prefix=settings.api.v1.prefix,
 )
@@ -38,4 +40,9 @@ router.include_router(
 router.include_router(
     orders_router,
     prefix=settings.api.v1.orders,
+)
+
+router.include_router(
+    categories_router,
+    prefix=settings.api.v1.categories,
 )

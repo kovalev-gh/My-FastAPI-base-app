@@ -6,7 +6,7 @@ __all__ = (
     "CartItem",
     "Order",
     "OrderItem",
-
+    "Category"
 )
 
 from .db_helper import db_helper
@@ -16,3 +16,4 @@ from .product import Product
 from .cart import CartItem
 from .order import Order
 from .order_item import OrderItem
+from .category import Category

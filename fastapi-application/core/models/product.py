@@ -2,6 +2,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import ForeignKey, Text, Integer, String, Boolean
 from core.models.mixins.int_id_pk import IntIdPkMixin
 from core.models.base import Base
+from core.models.category import Category
 
 class Product(IntIdPkMixin, Base):
 
@@ -11,6 +12,10 @@ class Product(IntIdPkMixin, Base):
     quantity: Mapped[int | None] = mapped_column(Integer, nullable=True)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     is_deleted: Mapped[bool] = mapped_column(Boolean, default=False)
+    category_id: Mapped[int | None] = mapped_column(ForeignKey("categories.id"), nullable=True)
+    # связь с категорией
+    category: Mapped["Category"] = relationship(
+        back_populates="products")
 
     # связь с изображениями
     images: Mapped[list["ProductImage"]] = relationship(
