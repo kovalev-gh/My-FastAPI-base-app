@@ -9,6 +9,7 @@ import {
   deleteImage,
   setMainImage as setMainImageApi,
 } from "../api/products";
+import { getCategories } from "../api/categories";
 
 export default function ProductForm() {
   const { productId } = useParams<{ productId: string }>();
@@ -18,12 +19,19 @@ export default function ProductForm() {
   const [optPrice, setOptPrice] = useState("0");
   const [quantity, setQuantity] = useState("0");
   const [subfolder, setSubfolder] = useState("");
+  const [categoryId, setCategoryId] = useState<number | null>(null);
+  const [categories, setCategories] = useState<{ id: number; name: string }[]>([]);
+
   const [files, setFiles] = useState<File[]>([]);
   const [filePreviews, setFilePreviews] = useState<string[]>([]);
   const [mainImageIndex, setMainImageIndex] = useState<number | null>(0);
   const [message, setMessage] = useState("");
   const [existingImages, setExistingImages] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    getCategories().then(setCategories);
+  }, []);
 
   useEffect(() => {
     const fetchProductData = async () => {
@@ -38,6 +46,7 @@ export default function ProductForm() {
         setOptPrice(data.opt_price?.toString() ?? "0");
         setQuantity(data.quantity?.toString() ?? "0");
         setSubfolder(data.path ?? "");
+        setCategoryId(data.category_id ?? null);
 
         const images = await getProductImages(productId);
         if (Array.isArray(images)) {
@@ -84,6 +93,7 @@ export default function ProductForm() {
           opt_price: parseInt(optPrice, 10),
           quantity: parseInt(quantity, 10),
           path: subfolder,
+          category_id: categoryId,
         });
       } else {
         product = await createProduct({
@@ -92,6 +102,7 @@ export default function ProductForm() {
           retail_price: parseInt(retailPrice, 10),
           opt_price: parseInt(optPrice, 10),
           quantity: parseInt(quantity, 10),
+          category_id: categoryId!,
         });
       }
 
@@ -103,17 +114,13 @@ export default function ProductForm() {
           uploadedImageIds.push(result.image_id);
         }
 
-        if (
-          mainImageIndex !== null &&
-          uploadedImageIds[mainImageIndex]
-        ) {
+        if (mainImageIndex !== null && uploadedImageIds[mainImageIndex]) {
           await setMainImageApi(uploadedImageIds[mainImageIndex]);
         }
       }
 
       setMessage("✅ Изменения успешно сохранены!");
       if (!productId) {
-        // сброс формы при создании
         setTitle("");
         setDescription("");
         setRetailPrice("0");
@@ -123,6 +130,7 @@ export default function ProductForm() {
         setFiles([]);
         setFilePreviews([]);
         setMainImageIndex(null);
+        setCategoryId(null);
       }
     } catch (error) {
       console.error(error);
@@ -191,6 +199,20 @@ export default function ProductForm() {
             value={quantity}
             onChange={(e) => setQuantity(normalizeNumberInput(e.target.value))}
           />
+        </div>
+
+        <div>
+          <label>Категория:</label><br />
+          <select
+            value={categoryId ?? ""}
+            onChange={(e) => setCategoryId(Number(e.target.value))}
+            required
+          >
+            <option value="" disabled>-- выберите категорию --</option>
+            {categories.map((cat) => (
+              <option key={cat.id} value={cat.id}>{cat.name}</option>
+            ))}
+          </select>
         </div>
 
         <div>

@@ -2,9 +2,21 @@ import api from "./axios";
 
 // Получение списка всех товаров
 // src/api/products.ts
-export async function getProducts(limit = 10, offset = 0) {
-  const response = await api.get(`/products?limit=${limit}&offset=${offset}`);
-  return response.data; // ✅ должен вернуть { items: [], total: number }
+export async function getProducts() {
+  const response = await api.get("/products");
+
+  const data = response.data;
+
+  if (Array.isArray(data)) {
+    return data;
+  }
+
+  if (Array.isArray(data.items)) {
+    return data.items;
+  }
+
+  console.error("❌ Неправильный формат данных:", data);
+  return [];
 }
 
 

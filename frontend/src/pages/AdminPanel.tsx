@@ -17,6 +17,9 @@ export default function AdminPanel() {
         <li>
           <Link to="/orders/all">📋 Все заказы</Link>
         </li>
+        <li>
+          <Link to="/admin/categories">📂 Управление категориями</Link>
+        </li>
       </ul>
     </div>
   );

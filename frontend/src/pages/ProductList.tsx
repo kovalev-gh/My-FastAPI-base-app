@@ -1,173 +1,154 @@
 import { useEffect, useState } from "react";
-import { getProductImages, getProducts } from "../api/products";
-import { addToCart } from "../api/cart";
 import { Link } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
-
-type Product = {
-  id: number;
-  title: string;
-  retail_price: number | null;
-};
-
-type ProductImage = {
-  id: number;
-  url: string;
-  is_main: boolean | string;
-};
-
-const API_URL = "http://localhost:8000";
-const PAGE_SIZE = 10;
+import {
+  getProducts,
+  getProductImages,
+} from "../api/products";
+import { getCategories } from "../api/categories";
+import { addToCart } from "../api/cart";
 
 export default function ProductList() {
-  const { user } = useAuth();
-  const [products, setProducts] = useState<Product[]>([]);
+  const [products, setProducts] = useState<any[]>([]);
   const [images, setImages] = useState<Record<number, string>>({});
+  const [categories, setCategories] = useState<any[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
-  const [page, setPage] = useState(0);
-  const [total, setTotal] = useState(0);
 
-  const fetchProductsAndImages = async () => {
-    setLoading(true);
-    try {
-      const response = await getProducts(PAGE_SIZE, page * PAGE_SIZE);
-
-      if (!response || !Array.isArray(response.items)) {
-        throw new Error("❌ Ожидался объект с полем items: Product[]");
-      }
-
-      setProducts(response.items);
-      setTotal(response.total);
-
-      const imageMap: Record<number, string> = {};
-
-      for (const product of response.items) {
-        const productImages: ProductImage[] = await getProductImages(product.id);
-        const mainImage = productImages.find((img) => Boolean(img.is_main));
-        if (mainImage && mainImage.url) {
-          const correctedPath = mainImage.url.replace("/api/v1media", "/media");
-          imageMap[product.id] = `${API_URL}${correctedPath}`;
-        }
-      }
-
-      setImages(imageMap);
-    } catch (err) {
-      console.error("❌ Ошибка загрузки товаров или изображений:", err);
-      setProducts([]); // fallback
-    } finally {
-      setLoading(false);
-    }
-  };
+  const API_URL = "http://localhost:8000";
 
   useEffect(() => {
-    fetchProductsAndImages();
-  }, [page]);
+    const loadCategories = async () => {
+      try {
+        const cats = await getCategories();
+        if (Array.isArray(cats)) setCategories(cats);
+        else console.error("Ожидался массив категорий, получено:", cats);
+      } catch (err) {
+        console.error("Ошибка загрузки категорий:", err);
+      }
+    };
+    loadCategories();
+  }, []);
+
+  useEffect(() => {
+    const loadProducts = async () => {
+      setLoading(true);
+      try {
+        const all = await getProducts();
+        if (!Array.isArray(all)) {
+          console.error("Ошибка: продукты не являются массивом:", all);
+          setProducts([]);
+          return;
+        }
+
+        const filtered = selectedCategory
+          ? all.filter((p) => p.category_id === selectedCategory)
+          : all;
+
+        setProducts(filtered);
+
+        const imageMap: Record<number, string> = {};
+        for (const product of filtered) {
+          try {
+            const imgs = await getProductImages(product.id);
+            const main = imgs?.find((i: any) => i.is_main);
+            if (main?.url) {
+              const fixed = main.url.replace("/api/v1media", "/media");
+              imageMap[product.id] = `${API_URL}${fixed}`;
+            }
+          } catch (imgErr) {
+            console.warn(`Ошибка загрузки изображений для товара ID ${product.id}:`, imgErr);
+          }
+        }
+
+        setImages(imageMap);
+      } catch (err) {
+        console.error("Ошибка загрузки продуктов:", err);
+        setProducts([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadProducts();
+  }, [selectedCategory]);
 
   const handleAddToCart = async (productId: number) => {
     try {
       await addToCart(productId, 1);
       alert("✅ Товар добавлен в корзину!");
-    } catch (error) {
-      console.error("❌ Ошибка при добавлении в корзину:", error);
-      alert("⛔ Не удалось добавить товар. Возможно, вы не авторизованы.");
+    } catch {
+      alert("❌ Не удалось добавить товар в корзину.");
     }
   };
 
-  const totalPages = Math.ceil(total / PAGE_SIZE);
-
-  if (loading) return <p>Загрузка товаров...</p>;
-
   return (
-    <div style={{ padding: "2rem", maxWidth: "800px", margin: "0 auto" }}>
+    <div style={{ padding: "2rem" }}>
       <h2>Список товаров</h2>
 
-      {products.length === 0 ? (
+      <div style={{ marginBottom: "1rem" }}>
+        <label>Категория: </label>
+        <select
+          value={selectedCategory ?? ""}
+          onChange={(e) =>
+            setSelectedCategory(e.target.value ? Number(e.target.value) : null)
+          }
+        >
+          <option value="">Все</option>
+          {categories.map((cat: any) => (
+            <option key={cat.id} value={cat.id}>
+              {cat.name}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {loading ? (
+        <p>Загрузка...</p>
+      ) : products.length === 0 ? (
         <p>Нет доступных товаров</p>
       ) : (
-        <>
-          <ul style={{ listStyle: "none", padding: 0 }}>
-            {products.map((product) => (
-              <li
-                key={product.id}
+        <ul style={{ listStyle: "none", padding: 0 }}>
+          {products.map((p) => (
+            <li
+              key={p.id}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                marginBottom: "1rem",
+                borderBottom: "1px solid #ccc",
+                paddingBottom: "1rem",
+              }}
+            >
+              <Link
+                to={`/products/${p.id}`}
                 style={{
                   display: "flex",
                   alignItems: "center",
-                  gap: "1rem",
-                  borderBottom: "1px solid #ccc",
-                  padding: "1rem 0",
+                  textDecoration: "none",
+                  color: "inherit",
                 }}
               >
-                <div
+                <img
+                  src={images[p.id] || "/placeholder.png"}
+                  alt={p.title}
                   style={{
-                    width: "64px",
-                    height: "64px",
-                    flexShrink: 0,
+                    width: 64,
+                    height: 64,
+                    objectFit: "cover",
+                    marginRight: 12,
                     border: "1px solid #ddd",
-                    borderRadius: "4px",
-                    backgroundColor: "#f9f9f9",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    overflow: "hidden",
+                    borderRadius: 4,
                   }}
-                >
-                  {images[product.id] ? (
-                    <img
-                      src={images[product.id]}
-                      alt={product.title}
-                      style={{
-                        width: "100%",
-                        height: "100%",
-                        objectFit: "contain",
-                      }}
-                    />
-                  ) : (
-                    <span style={{ fontSize: "1.5rem", color: "#aaa" }}>📷</span>
-                  )}
-                </div>
-
+                />
                 <div style={{ flexGrow: 1 }}>
-                  <Link to={`/products/${product.id}`} style={{ textDecoration: "none", color: "black" }}>
-                    <strong>{product.title}</strong>
-                  </Link>
-                  <div style={{ fontSize: "0.9rem", color: "#555" }}>
-                    {product.retail_price ?? "нет цены"} ₽
-                  </div>
+                  <strong>{p.title}</strong>
+                  <div>{p.retail_price ?? "-"} ₽</div>
                 </div>
-
-                <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-                  <button onClick={() => handleAddToCart(product.id)}>🛒 В корзину</button>
-                  {user?.is_superuser && (
-                    <Link to={`/admin/edit-product/${product.id}`} style={{ fontSize: "0.85rem" }}>
-                      ✏️ Редактировать
-                    </Link>
-                  )}
-                </div>
-              </li>
-            ))}
-          </ul>
-
-          {/* Пагинация */}
-          <div style={{ marginTop: "2rem", textAlign: "center" }}>
-            <button
-              onClick={() => setPage((prev) => Math.max(prev - 1, 0))}
-              disabled={page === 0}
-              style={{ marginRight: "1rem" }}
-            >
-              ⬅️ Назад
-            </button>
-            <span>
-              Страница {page + 1} из {totalPages}
-            </span>
-            <button
-              onClick={() => setPage((prev) => (prev + 1 < totalPages ? prev + 1 : prev))}
-              disabled={page + 1 >= totalPages}
-              style={{ marginLeft: "1rem" }}
-            >
-              Вперёд ➡️
-            </button>
-          </div>
-        </>
+              </Link>
+              <button onClick={() => handleAddToCart(p.id)}>🛒 В корзину</button>
+            </li>
+          ))}
+        </ul>
       )}
     </div>
   );
