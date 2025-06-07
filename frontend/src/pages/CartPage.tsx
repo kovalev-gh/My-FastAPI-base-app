@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { createOrderFromCart } from "../api/orders";
 import {
   getCart,
@@ -133,8 +134,17 @@ export default function CartPage() {
                 </div>
 
                 <div>
-                  <strong>{item.product.title}</strong> —{" "}
-                  {item.product.retail_price ?? "нет цены"} ₽ × {item.quantity} шт.
+                  <Link
+                    to={`/products/${item.product_id}`}
+                    style={{
+                      fontWeight: "bold",
+                      color: "#000",
+                      textDecoration: "none",
+                    }}
+                  >
+                    {item.product.title}
+                  </Link>{" "}
+                  — {item.product.retail_price ?? "нет цены"} ₽ × {item.quantity} шт.
                   <br />
                   <button onClick={() => handleRemove(item.product_id)}>Удалить</button>
                   <button onClick={() => handleUpdate(item.product_id, item.quantity + 1)}>+1</button>
