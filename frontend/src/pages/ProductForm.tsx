@@ -78,6 +78,15 @@ export default function ProductForm() {
     return value.replace(/^0+(?!$)/, "").replace(/\D/g, "") || "0";
   };
 
+  const getAbsoluteImageUrl = (url: string): string => {
+    if (url.startsWith("http")) return url;
+    const mediaIndex = url.indexOf("media/");
+    if (mediaIndex !== -1) {
+      return "/" + url.slice(mediaIndex);
+    }
+    return `/media/${url.replace(/^\/+/, "")}`;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setMessage("");
@@ -262,7 +271,7 @@ export default function ProductForm() {
               {existingImages.map((img, index) => (
                 <div key={img.id} style={{ textAlign: "center" }}>
                   <img
-                    src={img.url}
+                    src={getAbsoluteImageUrl(img.url)}
                     alt={`img-${index}`}
                     width={100}
                     height={100}
