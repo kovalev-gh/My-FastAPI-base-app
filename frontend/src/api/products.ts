@@ -19,7 +19,6 @@ export async function getProducts(limit = 10, offset = 0) {
   return { items: [], total: 0 };
 }
 
-
 // Получение товара по ID
 export async function getProductById(productId: number | string) {
   try {
@@ -62,6 +61,17 @@ export async function updateProduct(productId: number | string, data: {
     return response.data;
   } catch (error: any) {
     console.error(`❌ Ошибка при обновлении продукта ${productId}:`, error?.message ?? error);
+    throw error;
+  }
+}
+
+// ✅ Удаление товара по ID
+export async function deleteProduct(productId: number | string) {
+  try {
+    const response = await api.delete(`/products/${productId}`);
+    return response.data;
+  } catch (error: any) {
+    console.error(`❌ Ошибка при удалении продукта ${productId}:`, error?.message ?? error);
     throw error;
   }
 }

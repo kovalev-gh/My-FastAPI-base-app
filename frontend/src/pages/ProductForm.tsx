@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import {
   createProduct,
   updateProduct,
+  deleteProduct,
   getProductById,
   getProductImages,
   uploadProductImage,
@@ -13,6 +14,8 @@ import { getCategories } from "../api/categories";
 
 export default function ProductForm() {
   const { productId } = useParams<{ productId: string }>();
+  const navigate = useNavigate();
+
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [retailPrice, setRetailPrice] = useState("0");
@@ -21,7 +24,6 @@ export default function ProductForm() {
   const [subfolder, setSubfolder] = useState("");
   const [categoryId, setCategoryId] = useState<number | null>(null);
   const [categories, setCategories] = useState<{ id: number; name: string }[]>([]);
-
   const [files, setFiles] = useState<File[]>([]);
   const [filePreviews, setFilePreviews] = useState<string[]>([]);
   const [mainImageIndex, setMainImageIndex] = useState<number | null>(0);
@@ -102,7 +104,7 @@ export default function ProductForm() {
           opt_price: parseInt(optPrice, 10),
           quantity: parseInt(quantity, 10),
           path: subfolder,
-          category_id: categoryId,
+          category_id: categoryId!,
         });
       } else {
         product = await createProduct({
@@ -159,6 +161,21 @@ export default function ProductForm() {
       is_main: img.id === imageId,
     }));
     setExistingImages(updatedImages);
+  };
+
+  const handleDeleteProduct = async () => {
+    if (!productId) return;
+    const confirmed = window.confirm("Вы уверены, что хотите удалить этот товар?");
+    if (!confirmed) return;
+
+    try {
+      await deleteProduct(productId);
+      alert("✅ Товар успешно удалён.");
+      navigate("/products");
+    } catch (error) {
+      console.error("❌ Ошибка при удалении товара:", error);
+      alert("❌ Не удалось удалить товар.");
+    }
   };
 
   if (loading) return <p style={{ padding: "2rem" }}>Загрузка товара...</p>;
@@ -289,7 +306,21 @@ export default function ProductForm() {
           </div>
         )}
 
-        <button type="submit">{productId ? "Сохранить изменения" : "Создать"}</button>
+        <div style={{ marginTop: "1rem" }}>
+          <button type="submit">{productId ? "Сохранить изменения" : "Создать"}</button>
+        </div>
+
+        {productId && (
+          <div style={{ marginTop: "1rem" }}>
+            <button
+              type="button"
+              onClick={handleDeleteProduct}
+              style={{ backgroundColor: "red", color: "white", padding: "0.5rem 1rem", border: "none", cursor: "pointer" }}
+            >
+              Удалить товар
+            </button>
+          </div>
+        )}
       </form>
 
       {message && <p>{message}</p>}

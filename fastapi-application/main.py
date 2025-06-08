@@ -9,9 +9,6 @@ from api import router as api_router
 from views import router as views_router
 from create_fastapi_app import create_app
 
-# ⚠️ auth_router подключается уже через api_router, так что этот импорт можно удалить:
-# from api.api_v1.auth import router as auth_router
-
 # Настройка логов
 logging.basicConfig(
     level=settings.logging.log_level_value,
