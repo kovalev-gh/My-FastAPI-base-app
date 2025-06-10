@@ -56,7 +56,9 @@ async def set_cart_item(
     # 🔁 Повторно загружаем объект с product
     stmt = (
         select(CartItem)
-        .options(selectinload(CartItem.product))
+        .options(
+            selectinload(CartItem.product).selectinload(Product.attributes)
+        )
         .filter_by(id=cart_item.id)
     )
     result = await db.execute(stmt)
@@ -66,7 +68,9 @@ async def set_cart_item(
 async def get_cart_by_user(db: AsyncSession, user_id: int):
     stmt = (
         select(CartItem)
-        .options(selectinload(CartItem.product))
+        .options(
+            selectinload(CartItem.product).selectinload(Product.attributes)
+        )
         .filter_by(user_id=user_id)
     )
     result = await db.execute(stmt)

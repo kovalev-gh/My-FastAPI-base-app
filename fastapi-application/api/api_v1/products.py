@@ -43,12 +43,6 @@ async def get_products(
 ):
     products, total = await get_products_with_pagination(session=session, limit=limit, offset=offset)
 
-    items = [
-        ProductReadSuperuser.model_validate(p) if current_user and current_user.is_superuser
-        else ProductReadUser.model_validate(p)
-        for p in products
-    ]
-
     return {
         "total": total,
         "items": [
@@ -57,6 +51,7 @@ async def get_products(
             for p in products
         ]
     }
+
 
 @router.post("", response_model=ProductReadSuperuser, summary="Создание продукта (только для суперпользователя)")
 async def create_product_endpoint(
@@ -76,7 +71,7 @@ async def read_product(
 ):
     product = await get_product_by_id(session=session, product_id=product_id)
     if not product:
-        raise HTTPException(status_code=404, detail="Product not found")
+        raise HTTPException(status_code=404, detail="Продукт не найден")
 
     if current_user and current_user.is_superuser:
         return ProductReadSuperuser.model_validate(product)

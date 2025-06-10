@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import './App.css';
 import { useNavigate, useParams } from "react-router-dom";
 import {
   createProduct,
@@ -13,317 +14,324 @@ import {
 import { getCategories } from "../api/categories";
 
 export default function ProductForm() {
-  const { productId } = useParams<{ productId: string }>();
+  const { productId } = useParams();
   const navigate = useNavigate();
 
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [retailPrice, setRetailPrice] = useState("0");
-  const [optPrice, setOptPrice] = useState("0");
-  const [quantity, setQuantity] = useState("0");
-  const [subfolder, setSubfolder] = useState("");
-  const [categoryId, setCategoryId] = useState<number | null>(null);
-  const [categories, setCategories] = useState<{ id: number; name: string }[]>([]);
-  const [files, setFiles] = useState<File[]>([]);
-  const [filePreviews, setFilePreviews] = useState<string[]>([]);
-  const [mainImageIndex, setMainImageIndex] = useState<number | null>(0);
+  const [form, setForm] = useState({
+    title: "",
+    description: "",
+    retailPrice: "0",
+    optPrice: "0",
+    quantity: "0",
+    subfolder: "",
+    categoryId: "",
+  });
+
+  const [categories, setCategories] = useState([]);
+  const [files, setFiles] = useState([]);
+  const [filePreviews, setFilePreviews] = useState([]);
+  const [mainImageIndex, setMainImageIndex] = useState(null);
+  const [existingImages, setExistingImages] = useState([]);
+  const [attributes, setAttributes] = useState([{ key: "", value: "" }]);
   const [message, setMessage] = useState("");
-  const [existingImages, setExistingImages] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
+  const updateField = (field, value) =>
+    setForm((prev) => ({ ...prev, [field]: value }));
+
   useEffect(() => {
-    getCategories().then(setCategories);
+    getCategories()
+      .then((res) => setCategories(res.data || []))
+      .catch(() => setMessage("❌ Не удалось загрузить категории"));
   }, []);
 
   useEffect(() => {
-    const fetchProductData = async () => {
+    const fetchData = async () => {
       if (!productId) return;
-
+      setLoading(true);
       try {
-        setLoading(true);
         const { data } = await getProductById(productId);
-        setTitle(data.title ?? "");
-        setDescription(data.description ?? "");
-        setRetailPrice(data.retail_price?.toString() ?? "0");
-        setOptPrice(data.opt_price?.toString() ?? "0");
-        setQuantity(data.quantity?.toString() ?? "0");
-        setSubfolder(data.path ?? "");
-        setCategoryId(data.category_id ?? null);
+        setForm({
+          title: data.title ?? "",
+          description: data.description ?? "",
+          retailPrice: String(data.retail_price ?? "0"),
+          optPrice: String(data.opt_price ?? "0"),
+          quantity: String(data.quantity ?? "0"),
+          subfolder: "",
+          categoryId: data.category_id ?? "",
+        });
 
-        const images = await getProductImages(productId);
-        if (Array.isArray(images)) {
-          setExistingImages(images);
-          const mainIndex = images.findIndex((img: any) => img.is_main);
-          setMainImageIndex(mainIndex >= 0 ? mainIndex : null);
-        } else {
-          setExistingImages([]);
-        }
-      } catch (err) {
-        console.error("❌ Ошибка при загрузке товара:", err);
-        setMessage("❌ Не удалось загрузить товар.");
+        const attrArray = Object.entries(data.attributes || {}).map(([k, v]) => ({
+          key: k,
+          value: String(v),
+        }));
+        setAttributes(attrArray.length ? attrArray : [{ key: "", value: "" }]);
+
+        const imagesRes = await getProductImages(productId);
+        const imgs = imagesRes.data || [];
+        setExistingImages(imgs);
+        setMainImageIndex(imgs.findIndex((img) => img.is_main));
+      } catch (e) {
+        setMessage("❌ Не удалось загрузить товар");
       } finally {
         setLoading(false);
       }
     };
-
-    fetchProductData();
+    fetchData();
   }, [productId]);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFiles = Array.from(e.target.files ?? []);
-    setFiles(selectedFiles);
-    setFilePreviews(selectedFiles.map((file) => URL.createObjectURL(file)));
+  const normalizeNumberInput = (v) =>
+    v.replace(/^0+(?!$)/, "").replace(/\D/g, "") || "0";
+
+  const handleFileChange = (e) => {
+    const selected = Array.from(e.target.files ?? []);
+    setFiles(selected);
+    setFilePreviews(selected.map((f) => URL.createObjectURL(f)));
     setMainImageIndex(0);
   };
 
-  const normalizeNumberInput = (value: string) => {
-    return value.replace(/^0+(?!$)/, "").replace(/\D/g, "") || "0";
+  const handleAttributeChange = (i, field, val) => {
+    const newAttrs = [...attributes];
+    newAttrs[i][field] = val;
+    setAttributes(newAttrs);
   };
 
-  const getAbsoluteImageUrl = (url: string): string => {
-    if (url.startsWith("http")) return url;
-    const mediaIndex = url.indexOf("media/");
-    if (mediaIndex !== -1) {
-      return "/" + url.slice(mediaIndex);
-    }
-    return `/media/${url.replace(/^\/+/, "")}`;
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    setMessage("");
+    if (!form.categoryId) return setMessage("❌ Выберите категорию");
+
+    const attributesObj = Object.fromEntries(
+      attributes.filter((a) => a.key && a.value).map((a) => [a.key, a.value])
+    );
 
     try {
-      let product;
+      const payload = {
+        title: form.title,
+        description: form.description,
+        retail_price: +form.retailPrice,
+        opt_price: +form.optPrice,
+        quantity: +form.quantity,
+        category_id: +form.categoryId,
+        attributes: attributesObj,
+      };
 
-      if (productId) {
-        product = await updateProduct(productId, {
-          title,
-          description,
-          retail_price: parseInt(retailPrice, 10),
-          opt_price: parseInt(optPrice, 10),
-          quantity: parseInt(quantity, 10),
-          path: subfolder,
-          category_id: categoryId!,
-        });
-      } else {
-        product = await createProduct({
-          title,
-          description,
-          retail_price: parseInt(retailPrice, 10),
-          opt_price: parseInt(optPrice, 10),
-          quantity: parseInt(quantity, 10),
-          category_id: categoryId!,
-        });
-      }
+      const res = productId
+        ? await updateProduct(productId, payload)
+        : await createProduct(payload);
 
-      if (files.length > 0 && subfolder) {
-        const uploadedImageIds: string[] = [];
-
+      const product = res.data;
+      if (files.length && form.subfolder) {
+        const ids = [];
         for (const file of files) {
-          const result = await uploadProductImage(product.id, file, subfolder);
-          uploadedImageIds.push(result.image_id);
+          const r = await uploadProductImage(product.id, file, form.subfolder);
+          ids.push(r.data.image_id);
         }
-
-        if (mainImageIndex !== null && uploadedImageIds[mainImageIndex]) {
-          await setMainImageApi(uploadedImageIds[mainImageIndex]);
+        if (mainImageIndex !== null && ids[mainImageIndex]) {
+          await setMainImageApi(ids[mainImageIndex]);
         }
       }
 
-      setMessage("✅ Изменения успешно сохранены!");
+      setMessage("✅ Сохранено!");
       if (!productId) {
-        setTitle("");
-        setDescription("");
-        setRetailPrice("0");
-        setOptPrice("0");
-        setQuantity("0");
-        setSubfolder("");
+        setForm({
+          title: "", description: "", retailPrice: "0", optPrice: "0",
+          quantity: "0", subfolder: "", categoryId: ""
+        });
         setFiles([]);
         setFilePreviews([]);
-        setMainImageIndex(null);
-        setCategoryId(null);
+        setAttributes([{ key: "", value: "" }]);
       }
-    } catch (error) {
-      console.error(error);
-      setMessage("❌ Ошибка при сохранении товара");
+    } catch (err) {
+      setMessage("❌ Ошибка при сохранении");
     }
-  };
-
-  const handleDeleteImage = async (imageId: string) => {
-    await deleteImage(imageId);
-    setExistingImages((prev) => prev.filter((img) => img.id !== imageId));
-  };
-
-  const handleSetMainImage = async (imageId: string) => {
-    await setMainImageApi(imageId);
-    const updatedImages = existingImages.map((img) => ({
-      ...img,
-      is_main: img.id === imageId,
-    }));
-    setExistingImages(updatedImages);
   };
 
   const handleDeleteProduct = async () => {
-    if (!productId) return;
-    const confirmed = window.confirm("Вы уверены, что хотите удалить этот товар?");
-    if (!confirmed) return;
-
+    if (!productId || !window.confirm("Удалить товар?")) return;
     try {
       await deleteProduct(productId);
-      alert("✅ Товар успешно удалён.");
       navigate("/products");
-    } catch (error) {
-      console.error("❌ Ошибка при удалении товара:", error);
-      alert("❌ Не удалось удалить товар.");
+    } catch {
+      setMessage("❌ Не удалось удалить товар");
     }
   };
 
-  if (loading) return <p style={{ padding: "2rem" }}>Загрузка товара...</p>;
+  const handleDeleteImage = async (id) => {
+    try {
+      await deleteImage(id);
+      setExistingImages((imgs) => imgs.filter((i) => i.id !== id));
+    } catch {
+      setMessage("❌ Не удалось удалить изображение");
+    }
+  };
+
+  const handleSetMainImage = async (id) => {
+    try {
+      await setMainImageApi(id);
+      setExistingImages((imgs) =>
+        imgs.map((img) => ({ ...img, is_main: img.id === id }))
+      );
+    } catch {
+      setMessage("❌ Не удалось установить главное изображение");
+    }
+  };
+
+  if (loading) return <p className="p-8">Загрузка...</p>;
 
   return (
-    <div style={{ padding: "2rem" }}>
+    <div className="container">
       <h2>{productId ? "Редактировать продукт" : "Добавить продукт"}</h2>
       <form onSubmit={handleSubmit}>
-        <div>
-          <label>Название:</label><br />
-          <input value={title} onChange={(e) => setTitle(e.target.value)} required />
-        </div>
+        <label>Название</label>
+        <input
+          type="text"
+          value={form.title}
+          onChange={(e) => updateField("title", e.target.value)}
+          required
+        />
 
-        <div>
-          <label>Описание:</label><br />
-          <textarea value={description} onChange={(e) => setDescription(e.target.value)} />
-        </div>
+        <label>Описание</label>
+        <textarea
+          value={form.description}
+          onChange={(e) => updateField("description", e.target.value)}
+        />
 
-        <div>
-          <label>Розничная цена:</label><br />
-          <input
-            type="text"
-            inputMode="numeric"
-            pattern="[0-9]*"
-            value={retailPrice}
-            onChange={(e) => setRetailPrice(normalizeNumberInput(e.target.value))}
-          />
-        </div>
+        <label>Розничная цена</label>
+        <input
+          type="text"
+          value={form.retailPrice}
+          onChange={(e) =>
+            updateField("retailPrice", normalizeNumberInput(e.target.value))
+          }
+        />
 
-        <div>
-          <label>Оптовая цена:</label><br />
-          <input
-            type="text"
-            inputMode="numeric"
-            pattern="[0-9]*"
-            value={optPrice}
-            onChange={(e) => setOptPrice(normalizeNumberInput(e.target.value))}
-          />
-        </div>
+        <label>Оптовая цена</label>
+        <input
+          type="text"
+          value={form.optPrice}
+          onChange={(e) =>
+            updateField("optPrice", normalizeNumberInput(e.target.value))
+          }
+        />
 
-        <div>
-          <label>Количество:</label><br />
-          <input
-            type="text"
-            inputMode="numeric"
-            pattern="[0-9]*"
-            value={quantity}
-            onChange={(e) => setQuantity(normalizeNumberInput(e.target.value))}
-          />
-        </div>
+        <label>Количество</label>
+        <input
+          type="text"
+          value={form.quantity}
+          onChange={(e) =>
+            updateField("quantity", normalizeNumberInput(e.target.value))
+          }
+        />
 
-        <div>
-          <label>Категория:</label><br />
-          <select
-            value={categoryId ?? ""}
-            onChange={(e) => setCategoryId(Number(e.target.value))}
-            required
-          >
-            <option value="" disabled>-- выберите категорию --</option>
-            {categories.map((cat) => (
-              <option key={cat.id} value={cat.id}>{cat.name}</option>
-            ))}
-          </select>
-        </div>
+        <label>Папка</label>
+        <input
+          type="text"
+          value={form.subfolder}
+          onChange={(e) => updateField("subfolder", e.target.value)}
+        />
 
-        <div>
-          <label>Путь к подпапке:</label><br />
-          <input value={subfolder} onChange={(e) => setSubfolder(e.target.value)} />
-        </div>
+        <label>Категория</label>
+        <select
+          value={form.categoryId}
+          onChange={(e) => updateField("categoryId", e.target.value)}
+          required
+        >
+          <option value="">-- выберите --</option>
+          {categories.map((cat) => (
+            <option key={cat.id} value={cat.id}>
+              {cat.name}
+            </option>
+          ))}
+        </select>
 
-        <div>
-          <label>Новые изображения:</label><br />
-          <input type="file" accept="image/*" multiple onChange={handleFileChange} />
-        </div>
+        <label>Характеристики</label>
+        {attributes.map((attr, i) => (
+          <div className="attribute-row" key={i}>
+            <input
+              value={attr.key}
+              onChange={(e) => handleAttributeChange(i, "key", e.target.value)}
+              placeholder="Ключ"
+            />
+            <input
+              value={attr.value}
+              onChange={(e) => handleAttributeChange(i, "value", e.target.value)}
+              placeholder="Значение"
+            />
+            {attributes.length > 1 && (
+              <button
+                type="button"
+                onClick={() =>
+                  setAttributes(attributes.filter((_, j) => j !== i))
+                }
+              >
+                ✕
+              </button>
+            )}
+          </div>
+        ))}
+        <button
+          type="button"
+          onClick={() => setAttributes([...attributes, { key: "", value: "" }])}
+        >
+          + Добавить
+        </button>
+
+        <label>Загрузить изображения</label>
+        <input type="file" multiple accept="image/*" onChange={handleFileChange} />
 
         {filePreviews.length > 0 && (
-          <div>
-            <label>Выберите главное изображение:</label>
-            <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
-              {filePreviews.map((preview, index) => (
-                <div key={index} style={{ textAlign: "center" }}>
-                  <img
-                    src={preview}
-                    alt={`preview-${index}`}
-                    width={100}
-                    height={100}
-                    style={{
-                      border: mainImageIndex === index ? "2px solid green" : "1px solid #ccc",
-                      objectFit: "cover",
-                      borderRadius: "8px",
-                    }}
-                  /><br />
-                  <input
-                    type="radio"
-                    name="mainImage"
-                    checked={mainImageIndex === index}
-                    onChange={() => setMainImageIndex(index)}
-                  />
-                  <div style={{ fontSize: "0.8rem" }}>{files[index]?.name}</div>
-                </div>
-              ))}
-            </div>
+          <div className="image-preview">
+            {filePreviews.map((src, i) => (
+              <img
+                key={i}
+                src={src}
+                alt=""
+                className={mainImageIndex === i ? "selected" : ""}
+                onClick={() => setMainImageIndex(i)}
+              />
+            ))}
           </div>
         )}
 
         {existingImages.length > 0 && (
-          <div>
-            <label>Текущие изображения:</label>
-            <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
-              {existingImages.map((img, index) => (
-                <div key={img.id} style={{ textAlign: "center" }}>
-                  <img
-                    src={getAbsoluteImageUrl(img.url)}
-                    alt={`img-${index}`}
-                    width={100}
-                    height={100}
-                    style={{
-                      border: img.is_main ? "2px solid green" : "1px solid #ccc",
-                      borderRadius: "8px",
-                      objectFit: "cover",
-                    }}
-                  /><br />
-                  <button type="button" onClick={() => handleSetMainImage(img.id)}>Сделать главным</button><br />
-                  <button type="button" onClick={() => handleDeleteImage(img.id)}>Удалить</button>
-                </div>
-              ))}
-            </div>
+          <div className="image-preview">
+            {existingImages.map((img) => (
+              <div key={img.id}>
+                <img
+                  src={
+                    img.image_path.startsWith("http")
+                      ? img.image_path
+                      : `/media/${img.image_path}`
+                  }
+                  alt=""
+                  className={img.is_main ? "selected" : ""}
+                />
+                <button type="button" onClick={() => handleSetMainImage(img.id)}>
+                  Главная
+                </button>
+                <button type="button" onClick={() => handleDeleteImage(img.id)}>
+                  Удалить
+                </button>
+              </div>
+            ))}
           </div>
         )}
 
         <div style={{ marginTop: "1rem" }}>
-          <button type="submit">{productId ? "Сохранить изменения" : "Создать"}</button>
-        </div>
-
-        {productId && (
-          <div style={{ marginTop: "1rem" }}>
+          <button type="submit">{productId ? "Сохранить" : "Создать"}</button>
+          {productId && (
             <button
               type="button"
               onClick={handleDeleteProduct}
-              style={{ backgroundColor: "red", color: "white", padding: "0.5rem 1rem", border: "none", cursor: "pointer" }}
+              style={{ backgroundColor: "#c9302c", marginLeft: "10px" }}
             >
-              Удалить товар
+              Удалить
             </button>
-          </div>
-        )}
-      </form>
+          )}
+        </div>
 
-      {message && <p>{message}</p>}
+        {message && <p style={{ marginTop: "1rem", fontWeight: "bold" }}>{message}</p>}
+      </form>
     </div>
   );
 }

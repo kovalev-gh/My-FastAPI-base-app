@@ -6,8 +6,9 @@ from sqlalchemy.orm import selectinload
 from core.models.order import Order, OrderStatus
 from core.models.order_item import OrderItem
 from core.models.cart import CartItem
+from core.models.product import Product
 
-from mailing.send_order_notification import send_order_notification_email  # 📩 новый импорт
+from mailing.send_order_notification import send_order_notification_email
 
 
 async def create_order_from_cart(user_id: int, db: AsyncSession) -> Order:
@@ -17,12 +18,10 @@ async def create_order_from_cart(user_id: int, db: AsyncSession) -> Order:
     if not cart_items:
         raise ValueError("Cart is empty")
 
-    # Создаём заказ
     order = Order(user_id=user_id, status=OrderStatus.PENDING, created_at=datetime.utcnow())
     db.add(order)
     await db.flush()  # Получаем order.id
 
-    # Добавляем элементы заказа
     for item in cart_items:
         db.add(OrderItem(
             order_id=order.id,
@@ -30,21 +29,21 @@ async def create_order_from_cart(user_id: int, db: AsyncSession) -> Order:
             quantity=item.quantity
         ))
 
-    # Очищаем корзину
     await db.execute(delete(CartItem).where(CartItem.user_id == user_id))
     await db.commit()
 
-    # Загружаем заказ с его items и product
+    # ✅ Глубокая подгрузка: Order -> items -> product -> attributes
     result = await db.execute(
         select(Order)
         .options(
-            selectinload(Order.items).selectinload(OrderItem.product)
+            selectinload(Order.items)
+            .selectinload(OrderItem.product)
+            .selectinload(Product.attributes)
         )
         .where(Order.id == order.id)
     )
     order = result.scalar_one()
 
-    # Отправляем email менеджеру
     await send_order_notification_email(order)
 
     return order
@@ -53,7 +52,12 @@ async def create_order_from_cart(user_id: int, db: AsyncSession) -> Order:
 async def get_orders_by_user_id(db: AsyncSession, user_id: int):
     result = await db.execute(
         select(Order)
-        .options(selectinload(Order.user), selectinload(Order.items).selectinload(OrderItem.product))
+        .options(
+            selectinload(Order.user),
+            selectinload(Order.items)
+            .selectinload(OrderItem.product)
+            .selectinload(Product.attributes)  # ✅ глубокая загрузка
+        )
         .where(Order.user_id == user_id)
         .order_by(Order.created_at.desc())
     )
@@ -64,8 +68,10 @@ async def get_all_orders(session: AsyncSession) -> list[Order]:
     result = await session.execute(
         select(Order)
         .options(
-            selectinload(Order.items).selectinload(OrderItem.product),  # 🟢 подгружаем product внутри items
-            selectinload(Order.user),  # 🟢 подгружаем user
+            selectinload(Order.user),
+            selectinload(Order.items)
+            .selectinload(OrderItem.product)
+            .selectinload(Product.attributes)  # ✅ глубокая загрузка
         )
         .order_by(Order.created_at.desc())
     )
