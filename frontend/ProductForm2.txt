@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import './App.css';
 import { useNavigate, useParams } from "react-router-dom";
 import {
   createProduct,
@@ -199,12 +200,12 @@ export default function ProductForm() {
     }
   };
 
-  if (loading) return <p>Загрузка...</p>;
+  if (loading) return <p className="p-8">Загрузка...</p>;
 
   return (
-    <div>
+    <div className="container">
       <h2>{productId ? "Редактировать продукт" : "Добавить продукт"}</h2>
-      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxWidth: '600px' }}>
+      <form onSubmit={handleSubmit}>
         <label>Название</label>
         <input type="text" value={form.title} onChange={e => updateField("title", e.target.value)} required />
 
@@ -240,7 +241,7 @@ export default function ProductForm() {
 
         <label>Характеристики</label>
         {attributes.map((attr, i) => (
-          <div key={i} style={{ display: 'flex', gap: '0.5rem' }}>
+          <div className="attribute-row" key={i}>
             <input value={attr.key} onChange={e => handleAttributeChange(i, "key", e.target.value)} placeholder="Ключ" />
             <input value={attr.value} onChange={e => handleAttributeChange(i, "value", e.target.value)} placeholder="Значение" />
             {attributes.length > 1 && (
@@ -254,10 +255,10 @@ export default function ProductForm() {
         <input type="file" multiple accept="image/*" onChange={handleFileChange} />
 
         {filePreviews.length > 0 && (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', marginTop: '1rem' }}>
+          <div className="image-preview">
             {filePreviews.map((src, i) => (
-              <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                <img src={src} alt="" style={{ width: '100px', height: '100px', objectFit: 'cover', borderRadius: '4px' }} />
+              <div key={i}>
+                <img src={src} alt="" className={mainImageIndex === i ? "selected" : ""} onClick={() => setMainImageIndex(i)} />
                 <button type="button" onClick={() => setMainImageIndex(i)}>
                   {mainImageIndex === i ? "Главное" : "Сделать главной"}
                 </button>
@@ -267,10 +268,10 @@ export default function ProductForm() {
         )}
 
         {existingImages.length > 0 && (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', marginTop: '1rem' }}>
+          <div className="image-preview">
             {existingImages.map(img => (
-              <div key={img.id} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                <img src={img.image_path.startsWith("http") ? img.image_path : `/media/${img.image_path}`} alt="" style={{ width: '100px', height: '100px', objectFit: 'cover', borderRadius: '4px' }} />
+              <div key={img.id}>
+                <img src={img.image_path.startsWith("http") ? img.image_path : `/media/${img.image_path}`} alt="" className={img.is_main ? "selected" : ""} />
                 <button type="button" onClick={() => handleSetMainImage(img.id)}>Сделать главной</button>
                 <button type="button" onClick={() => handleDeleteImage(img.id)}>Удалить</button>
               </div>
@@ -278,14 +279,16 @@ export default function ProductForm() {
           </div>
         )}
 
-        <div>
+        <div style={{ marginTop: "1rem" }}>
           <button type="submit">{productId ? "Сохранить" : "Создать"}</button>
           {productId && (
-            <button type="button" onClick={handleDeleteProduct}>Удалить</button>
+            <button type="button" onClick={handleDeleteProduct} style={{ backgroundColor: "#c9302c", marginLeft: "10px" }}>
+              Удалить
+            </button>
           )}
         </div>
 
-        {message && <p>{message}</p>}
+        {message && <p style={{ marginTop: "1rem", fontWeight: "bold" }}>{message}</p>}
       </form>
     </div>
   );
