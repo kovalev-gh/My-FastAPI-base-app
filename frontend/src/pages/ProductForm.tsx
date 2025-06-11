@@ -109,25 +109,32 @@ export default function ProductForm() {
 
     const attributesList = attributes
       .filter((a) => a.key && a.value)
-      .map((a) => ({ key: a.key, value: a.value }));
+      .map((a) => ({ attribute_id: Number(a.key), value: a.value }));
+
+    const payload = {
+      title: form.title,
+      description: form.description,
+      sku: form.sku,
+      retail_price: +form.retailPrice,
+      opt_price: +form.optPrice,
+      quantity: +form.quantity,
+      category_id: +form.categoryId,
+    };
+
+    if (attributesList.length > 0) {
+      payload.attributes = attributesList;
+    }
 
     try {
-      const payload = {
-        title: form.title,
-        description: form.description,
-        sku: form.sku,
-        retail_price: +form.retailPrice,
-        opt_price: +form.optPrice,
-        quantity: +form.quantity,
-        category_id: +form.categoryId,
-        attributes: attributesList,
-      };
-
       const res = productId
         ? await updateProduct(productId, payload)
         : await createProduct(payload);
 
-      const product = res.data;
+      const product = res?.data ?? res;
+      if (!product?.id) {
+        setMessage("❌ Ошибка: не получен ID продукта.");
+        return;
+      }
 
       if (files.length && form.subfolder) {
         const ids = [];
@@ -164,7 +171,11 @@ export default function ProductForm() {
 
     } catch (err) {
       console.error("Ошибка:", err);
-      setMessage("❌ Ошибка при сохранении");
+      if (err.response?.data?.detail) {
+        setMessage(`❌ ${err.response.data.detail}`);
+      } else {
+        setMessage("❌ Ошибка при сохранении");
+      }
     }
   };
 
@@ -241,7 +252,7 @@ export default function ProductForm() {
         <label>Характеристики</label>
         {attributes.map((attr, i) => (
           <div key={i} style={{ display: 'flex', gap: '0.5rem' }}>
-            <input value={attr.key} onChange={e => handleAttributeChange(i, "key", e.target.value)} placeholder="Ключ" />
+            <input value={attr.key} onChange={e => handleAttributeChange(i, "key", e.target.value)} placeholder="ID характеристики" />
             <input value={attr.value} onChange={e => handleAttributeChange(i, "value", e.target.value)} placeholder="Значение" />
             {attributes.length > 1 && (
               <button type="button" onClick={() => setAttributes(attributes.filter((_, j) => j !== i))}>✕</button>
