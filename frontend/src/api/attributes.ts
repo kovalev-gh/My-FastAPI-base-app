@@ -1,9 +1,21 @@
-import axios from './axios';
+import api from './axios';
 
-export const getAllAttributes = () => axios.get('/api/v1/attributes/attributes');
-export const createAttribute = (name: string) => axios.post('/api/v1/attributes/attributes', { name });
-export const getCategoryAttributes = (categoryId: number) => axios.get(`/api/v1/attributes/attributes/category/${categoryId}`);
+// Получить все доступные атрибуты
+export const getAllAttributes = () =>
+  api.get('/attributes/attributes');
+
+// ✅ Создать новый атрибут с названием и (необязательной) единицей измерения
+export const createAttribute = (data: { name: string; unit?: string }) =>
+  api.post('/attributes/attributes', data);
+
+// Получить все атрибуты, связанные с категорией
+export const getCategoryAttributes = (categoryId: number) =>
+  api.get(`/attributes/attributes/category/${categoryId}`);
+
+// Привязать атрибут к категории
 export const bindAttributeToCategory = (categoryId: number, attributeId: number) =>
-  axios.post(`/api/v1/attributes/attributes/category/${categoryId}/${attributeId}`);
+  api.post(`/attributes/attributes/category/${categoryId}/${attributeId}`);
+
+// Отвязать атрибут от категории
 export const unbindAttributeFromCategory = (categoryId: number, attributeId: number) =>
-  axios.delete(`/api/v1/attributes/attributes/category/${categoryId}/${attributeId}`);
+  api.delete(`/attributes/attributes/category/${categoryId}/${attributeId}`);

@@ -1,12 +1,10 @@
 // src/api/axios.ts
 import axios, { AxiosRequestConfig, AxiosRequestHeaders } from "axios";
 
-// Создаём экземпляр axios с базовым URL
 const api = axios.create({
   baseURL: "/api/v1",
 });
 
-// Добавляем интерсептор запроса для токена авторизации
 api.interceptors.request.use(
   (config: AxiosRequestConfig) => {
     const token = localStorage.getItem("token");
@@ -27,4 +25,5 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
+// 🔧 ЭТО СТРОКА ОБЯЗАТЕЛЬНА
 export default api;
