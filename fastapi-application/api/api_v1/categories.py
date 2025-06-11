@@ -4,13 +4,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.models import db_helper
 from core.models.user import User
-from core.schemas.category import CategoryCreate, CategoryRead, CategoryUpdate
+from core.schemas.category import CategoryCreate, CategoryRead, CategoryUpdate, CategoryWithAttributes
 from crud.categories import (
     get_all_categories,
     create_category,
     update_category,
     soft_delete_category,
     restore_category,
+    get_categories_with_attributes
 )
 from api.api_v1.deps import get_current_superuser
 
@@ -65,3 +66,9 @@ async def delete_category(
     if not success:
         raise HTTPException(status_code=404, detail="Категория не найдена")
     return {"message": "Категория помечена как удалённая"}
+
+@router.get("/with-attributes", summary="Категории с привязанными атрибутами", response_model=List[CategoryWithAttributes])
+async def list_categories_with_attributes(
+    session: Annotated[AsyncSession, Depends(db_helper.session_getter)],
+):
+    return await get_categories_with_attributes(session)

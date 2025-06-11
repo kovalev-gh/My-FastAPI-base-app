@@ -37,6 +37,7 @@ class ApiV1Prefix(BaseModel):
     orders: str = "/orders"
     carts: str = "/carts"
     categories: str = "/categories"
+    attributes: str = "/attributes"
 
 
 class ApiPrefix(BaseModel):

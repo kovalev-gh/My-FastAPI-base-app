@@ -6,7 +6,13 @@ __all__ = (
     "CartItem",
     "Order",
     "OrderItem",
-    "Category"
+    "Category",
+    "ProductAttributeDefinition",
+    "ProductAttributeValue",
+    "ProductImage",
+
+
+
 )
 
 from .db_helper import db_helper
@@ -17,3 +23,5 @@ from .cart import CartItem
 from .order import Order
 from .order_item import OrderItem
 from .category import Category
+from .product_attribute import ProductAttributeDefinition, ProductAttributeValue
+from .product_image import ProductImage

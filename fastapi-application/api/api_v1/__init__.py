@@ -14,6 +14,8 @@ from .orders import router as orders_router
 
 from .categories import router as categories_router
 
+from .attributes import router as attributes_router
+
 router = APIRouter(
     prefix=settings.api.v1.prefix,
 )
@@ -45,4 +47,9 @@ router.include_router(
 router.include_router(
     categories_router,
     prefix=settings.api.v1.categories,
+)
+
+router.include_router(
+    attributes_router,
+    prefix=settings.api.v1.attributes,
 )

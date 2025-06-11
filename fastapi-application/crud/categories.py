@@ -1,5 +1,6 @@
 from fastapi import HTTPException
 from sqlalchemy import select, delete
+from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 from core.models.category import Category
 
@@ -67,3 +68,12 @@ async def soft_delete_category(session: AsyncSession, category_id: int) -> bool:
     category.is_deleted = True
     await session.commit()
     return True
+
+async def get_categories_with_attributes(session: AsyncSession):
+    result = await session.execute(
+        select(Category)
+        .options(selectinload(Category.attributes))
+        .where(Category.is_deleted == False)
+        .order_by(Category.name)
+    )
+    return result.scalars().all()
