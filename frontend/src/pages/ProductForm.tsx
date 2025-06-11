@@ -234,8 +234,13 @@ export default function ProductForm() {
         <label>Количество</label>
         <input type="text" value={form.quantity} onChange={e => updateField("quantity", normalizeNumberInput(e.target.value))} />
 
-        <label>Папка</label>
-        <input type="text" value={form.subfolder} onChange={e => updateField("subfolder", e.target.value)} />
+        <label>Путь к папке фото</label>
+        <input
+          type="text"
+          placeholder="например: phones/iphone5"
+          value={form.subfolder}
+          onChange={e => updateField("subfolder", e.target.value)}
+        />
 
         <label>Категория</label>
         <select
