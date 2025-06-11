@@ -55,38 +55,40 @@ const CategoryManager: React.FC = () => {
       <h2>📂 Управление категориями</h2>
 
       <h4>Добавить категорию</h4>
-      <input
-        value={newCategoryName}
-        onChange={(e) => setNewCategoryName(e.target.value)}
-        placeholder="Название категории"
-      />
-      <button onClick={handleCreate}>Добавить</button>
+      <div style={{ marginBottom: "1rem" }}>
+        <input
+          value={newCategoryName}
+          onChange={(e) => setNewCategoryName(e.target.value)}
+          placeholder="Название категории"
+          style={{ marginRight: "0.5rem" }}
+        />
+        <button onClick={handleCreate}>Добавить</button>
+      </div>
 
       <h4>Активные категории</h4>
-      <ul>
+      <ul style={{ listStyle: "none", paddingLeft: 0 }}>
         {activeCategories.map((cat) => (
-          <li key={cat.id}>
+          <li key={cat.id} style={{ display: "flex", alignItems: "center", marginBottom: "0.5rem" }}>
             {editModeId === cat.id ? (
               <>
                 <input
                   value={editedName}
                   onChange={(e) => setEditedName(e.target.value)}
+                  style={{ marginRight: "0.5rem" }}
                 />
-                <button onClick={() => handleEdit(cat.id)}>Сохранить</button>
+                <button onClick={() => handleEdit(cat.id)} style={{ marginRight: "0.5rem" }}>Сохранить</button>
                 <button onClick={() => setEditModeId(null)}>Отмена</button>
               </>
             ) : (
               <>
-                {cat.name}
-                <button
-                  onClick={() => {
+                <span style={{ minWidth: "150px" }}>{cat.name}</span>
+                <div style={{ display: "flex", gap: "0.3rem", marginLeft: "1rem" }}>
+                  <button onClick={() => {
                     setEditModeId(cat.id);
                     setEditedName(cat.name);
-                  }}
-                >
-                  ✏️
-                </button>
-                <button onClick={() => handleDelete(cat.id)}>🗑️</button>
+                  }}>✏️</button>
+                  <button onClick={() => handleDelete(cat.id)}>🗑️</button>
+                </div>
               </>
             )}
           </li>
@@ -96,11 +98,11 @@ const CategoryManager: React.FC = () => {
       {deletedCategories.length > 0 && (
         <>
           <h4>Удалённые категории</h4>
-          <ul>
+          <ul style={{ listStyle: "none", paddingLeft: 0 }}>
             {deletedCategories.map((cat) => (
-              <li key={cat.id} style={{ color: "#888" }}>
-                {cat.name}
-                <button onClick={() => handleRestore(cat.name)}>♻️</button>
+              <li key={cat.id} style={{ display: "flex", alignItems: "center", color: "#888", marginBottom: "0.5rem" }}>
+                <span style={{ minWidth: "150px", textDecoration: "line-through" }}>{cat.name}</span>
+                <button onClick={() => handleRestore(cat.name)} style={{ marginLeft: "1rem" }}>♻️</button>
               </li>
             ))}
           </ul>
