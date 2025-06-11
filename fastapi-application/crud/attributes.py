@@ -19,11 +19,11 @@ async def get_attribute_by_id(session: AsyncSession, attribute_id: int) -> Produ
     )
     attribute = result.scalar_one_or_none()
     if not attribute:
-        raise HTTPException(status_code=404, detail="Атрибут не найден")
+        raise HTTPException(status_code=404, detail="ATTRIBUTE_NOT_FOUND")
     return attribute
 
 
-# 🔤 Получить атрибут по имени
+# Получить атрибут по имени
 async def get_attribute_by_name(session: AsyncSession, name: str) -> ProductAttributeDefinition | None:
     result = await session.execute(
         select(ProductAttributeDefinition).where(ProductAttributeDefinition.name == name)
@@ -31,11 +31,11 @@ async def get_attribute_by_name(session: AsyncSession, name: str) -> ProductAttr
     return result.scalar_one_or_none()
 
 
-# ➕ Создать новый атрибут (только если не существует с таким именем)
+# Создать новый атрибут (только если не существует с таким именем)
 async def create_attribute(session: AsyncSession, name: str, unit: str | None = None) -> ProductAttributeDefinition:
     existing = await get_attribute_by_name(session, name)
     if existing:
-        raise HTTPException(status_code=400, detail="Атрибут с таким именем уже существует")
+        raise HTTPException(status_code=400, detail="ATTRIBUTE_NAME_CONFLICT")
 
     new_attr = ProductAttributeDefinition(name=name, unit=unit)
     session.add(new_attr)
@@ -46,7 +46,6 @@ async def create_attribute(session: AsyncSession, name: str, unit: str | None = 
 
 # Привязать атрибут к категории
 async def link_attribute_to_category(session: AsyncSession, category_id: int, attribute_id: int):
-    # Проверка, существует ли уже связь
     result = await session.execute(
         select(attribute_category_link).where(
             attribute_category_link.c.category_id == category_id,
@@ -54,13 +53,13 @@ async def link_attribute_to_category(session: AsyncSession, category_id: int, at
         )
     )
     if result.first():
-        raise HTTPException(status_code=400, detail="Атрибут уже привязан к категории")
+        raise HTTPException(status_code=400, detail="ATTRIBUTE_ALREADY_LINKED")
 
     await session.execute(
         attribute_category_link.insert().values(category_id=category_id, attribute_id=attribute_id)
     )
     await session.commit()
-    return {"message": "Атрибут привязан к категории"}
+    return {"message": "ATTRIBUTE_LINKED_SUCCESSFULLY"}
 
 
 # Получить атрибуты категории
@@ -84,7 +83,7 @@ async def unlink_attribute_from_category(session: AsyncSession, category_id: int
         )
     )
     if not result.first():
-        raise HTTPException(status_code=404, detail="Связь не найдена")
+        raise HTTPException(status_code=404, detail="LINK_NOT_FOUND")
 
     await session.execute(
         attribute_category_link.delete().where(
@@ -93,4 +92,4 @@ async def unlink_attribute_from_category(session: AsyncSession, category_id: int
         )
     )
     await session.commit()
-    return {"message": "Атрибут отвязан от категории"}
+    return {"message": "ATTRIBUTE_UNLINKED_SUCCESSFULLY"}

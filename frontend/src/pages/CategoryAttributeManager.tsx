@@ -1,3 +1,4 @@
+// ✅ CategoryAttributeManager.tsx
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import {
@@ -22,6 +23,7 @@ const CategoryAttributeManager: React.FC = () => {
 
   const [newAttrName, setNewAttrName] = useState("");
   const [newAttrUnit, setNewAttrUnit] = useState("");
+  const [error, setError] = useState("");
 
   useEffect(() => {
     getCategories().then(setCategories);
@@ -35,26 +37,37 @@ const CategoryAttributeManager: React.FC = () => {
   }, [selectedCategoryId]);
 
   const handleAddAttribute = async () => {
+    setError("");
     if (!newAttrName.trim() || selectedCategoryId === null) return;
 
-    let attr = allAttributes.find((a) => a.name === newAttrName);
+    try {
+      let attr = allAttributes.find((a) => a.name === newAttrName);
 
-    if (!attr) {
-      const res = await createAttribute({
-        name: newAttrName.trim(),
-        unit: newAttrUnit.trim(),
-      });
-      attr = res.data;
-      setAllAttributes([...allAttributes, attr]);
+      if (!attr) {
+        const res = await createAttribute({
+          name: newAttrName.trim(),
+          unit: newAttrUnit.trim() || undefined,
+        });
+        attr = res.data;
+        setAllAttributes([...allAttributes, attr]);
+      }
+
+      await bindAttributeToCategory(selectedCategoryId, attr.id);
+
+      const updated = await getCategoryAttributes(selectedCategoryId);
+      setAttributes(updated.data);
+      setNewAttrName("");
+      setNewAttrUnit("");
+    } catch (err: any) {
+      if (err.response?.data?.detail === "ATTRIBUTE_NAME_CONFLICT") {
+        setError("Атрибут с таким именем уже существует.");
+      } else if (err.response?.data?.detail === "ATTRIBUTE_ALREADY_LINKED") {
+        setError("Атрибут уже привязан к этой категории.");
+      } else {
+        setError("Произошла неизвестная ошибка.");
+        console.error("Ошибка при добавлении атрибута:", err);
+      }
     }
-
-    await bindAttributeToCategory(selectedCategoryId, attr.id);
-
-    const updated = await getCategoryAttributes(selectedCategoryId);
-    setAttributes(updated.data);
-
-    setNewAttrName("");
-    setNewAttrUnit("");
   };
 
   const handleRemoveAttribute = async (attrId: number) => {
@@ -66,7 +79,7 @@ const CategoryAttributeManager: React.FC = () => {
 
   return (
     <div style={{ padding: "20px" }}>
-      <h2>🧩 Управление атрибутами категорий</h2>
+      <h2>🧹 Управление атрибутами категорий</h2>
 
       <label>Выберите категорию:</label>
       <select
@@ -97,6 +110,7 @@ const CategoryAttributeManager: React.FC = () => {
           </ul>
 
           <h4>Добавить атрибут</h4>
+          {error && <div style={{ color: "red", marginBottom: "0.5rem" }}>{error}</div>}
           <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1rem" }}>
             <input
               type="text"

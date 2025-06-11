@@ -13,6 +13,7 @@ const CategoryManager: React.FC = () => {
   const [newCategoryName, setNewCategoryName] = useState("");
   const [editModeId, setEditModeId] = useState<number | null>(null);
   const [editedName, setEditedName] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
 
   const loadCategories = async () => {
     const result = await getCategories();
@@ -24,28 +25,50 @@ const CategoryManager: React.FC = () => {
   }, []);
 
   const handleCreate = async () => {
+    setErrorMessage("");
     if (!newCategoryName.trim()) return;
-    await createCategory(newCategoryName.trim());
-    setNewCategoryName("");
-    loadCategories();
+
+    try {
+      await createCategory(newCategoryName.trim());
+      setNewCategoryName("");
+      await loadCategories();
+    } catch (err: any) {
+      if (err.response?.status === 400) {
+        setErrorMessage("Категория с таким именем уже существует.");
+      } else {
+        setErrorMessage("Ошибка при создании категории.");
+        console.error("Ошибка создания категории:", err);
+      }
+    }
   };
 
   const handleDelete = async (id: number) => {
     await deleteCategory(id);
-    loadCategories();
+    await loadCategories();
   };
 
   const handleRestore = async (name: string) => {
     await restoreCategory(name);
-    loadCategories();
+    await loadCategories();
   };
 
   const handleEdit = async (id: number) => {
+    setErrorMessage("");
     if (!editedName.trim()) return;
-    await updateCategory(id, editedName.trim());
-    setEditModeId(null);
-    setEditedName("");
-    loadCategories();
+
+    try {
+      await updateCategory(id, editedName.trim());
+      setEditModeId(null);
+      setEditedName("");
+      await loadCategories();
+    } catch (err: any) {
+      if (err.response?.status === 400) {
+        setErrorMessage("Ошибка: имя уже используется.");
+      } else {
+        setErrorMessage("Ошибка при редактировании.");
+        console.error("Ошибка редактирования категории:", err);
+      }
+    }
   };
 
   const activeCategories = categories.filter(cat => !cat.is_deleted);
@@ -65,6 +88,9 @@ const CategoryManager: React.FC = () => {
         />
         <button onClick={handleCreate}>Добавить</button>
       </div>
+      {errorMessage && (
+        <div style={{ color: "red", marginBottom: "1rem" }}>{errorMessage}</div>
+      )}
 
       <h4>Активные категории</h4>
       <ul style={{ listStyle: "none", paddingLeft: 0 }}>
@@ -90,7 +116,7 @@ const CategoryManager: React.FC = () => {
                   }}>✏️</button>
                   <button onClick={() => handleDelete(cat.id)}>🗑️</button>
                   <Link to={`/admin/category-attributes/${cat.id}`}>
-                    <button>⚙️</button>
+                    <button title="Управление атрибутами">⚙️</button>
                   </Link>
                 </div>
               </>
