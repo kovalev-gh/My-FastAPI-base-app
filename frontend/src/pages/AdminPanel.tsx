@@ -18,7 +18,10 @@ export default function AdminPanel() {
           <Link to="/orders/all">📋 Все заказы</Link>
         </li>
         <li>
-          <Link to="/admin/categories">📂 Управление категориями</Link>
+          <Link to="/admin/category-manager">📂 Управление категориями</Link>
+        </li>
+        <li>
+          <Link to="/admin/category-attributes">🧩 Атрибуты категорий</Link>
         </li>
       </ul>
     </div>

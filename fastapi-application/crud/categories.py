@@ -8,10 +8,9 @@ from core.models.category import Category
 
 async def get_all_categories(session: AsyncSession):
     result = await session.execute(
-        select(Category).where(Category.is_deleted == False).order_by(Category.name)
+        select(Category).order_by(Category.name)
     )
     return result.scalars().all()
-
 
 # crud/categories.py
 
