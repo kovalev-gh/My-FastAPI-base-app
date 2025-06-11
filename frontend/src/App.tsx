@@ -55,7 +55,7 @@ function App() {
         <Route path="/admin/category-manager" element={user?.is_superuser ? <CategoryManager /> : <Navigate to="/products" replace />} />
 
         {/* Управление атрибутами категорий */}
-        <Route path="/admin/category-attributes" element={user?.is_superuser ? <CategoryAttributeManager /> : <Navigate to="/products" replace />} />
+        <Route path="/admin/category-attributes/:categoryId?" element={user?.is_superuser ? <CategoryAttributeManager /> : <Navigate to="/products" replace />} />
 
         {/* Аутентификация */}
         <Route path="/login" element={<Login />} />

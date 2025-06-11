@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import {
   getCategories,
   createCategory,
@@ -88,6 +89,9 @@ const CategoryManager: React.FC = () => {
                     setEditedName(cat.name);
                   }}>✏️</button>
                   <button onClick={() => handleDelete(cat.id)}>🗑️</button>
+                  <Link to={`/admin/category-attributes/${cat.id}`}>
+                    <button>⚙️</button>
+                  </Link>
                 </div>
               </>
             )}

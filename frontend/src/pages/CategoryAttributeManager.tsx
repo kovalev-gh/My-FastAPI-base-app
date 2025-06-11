@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useParams } from "react-router-dom";
 import {
   getCategories,
   getCategoryAttributes,
@@ -11,8 +12,11 @@ import {
 } from "../api/attributes";
 
 const CategoryAttributeManager: React.FC = () => {
+  const { categoryId } = useParams(); // ← читаем categoryId из URL
+  const initialCategoryId = categoryId ? Number(categoryId) : null;
+
   const [categories, setCategories] = useState<any[]>([]);
-  const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(initialCategoryId);
   const [attributes, setAttributes] = useState<any[]>([]);
   const [newAttrName, setNewAttrName] = useState("");
   const [allAttributes, setAllAttributes] = useState<any[]>([]);
@@ -73,7 +77,7 @@ const CategoryAttributeManager: React.FC = () => {
           <h3>Атрибуты категории</h3>
           <ul>
             {attributes.map((attr) => (
-              <li key={attr.id}>
+              <li key={attr.id} style={{ marginBottom: "0.4rem" }}>
                 {attr.name}{" "}
                 <button onClick={() => handleRemoveAttribute(attr.id)}>Удалить</button>
               </li>
@@ -86,6 +90,7 @@ const CategoryAttributeManager: React.FC = () => {
             placeholder="Название атрибута"
             value={newAttrName}
             onChange={(e) => setNewAttrName(e.target.value)}
+            style={{ marginRight: "0.5rem" }}
           />
           <button onClick={handleAddAttribute}>Добавить</button>
         </>
