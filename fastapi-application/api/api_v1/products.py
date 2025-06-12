@@ -43,10 +43,12 @@ async def get_products(
 ):
     products, total = await get_products_with_pagination(session=session, limit=limit, offset=offset)
 
+    is_admin = current_user and current_user.is_superuser
+
     return {
         "total": total,
         "items": [
-            ProductReadSuperuser.model_validate(p) if current_user and current_user.is_superuser
+            ProductReadSuperuser.model_validate(p) if is_admin
             else ProductReadUser.model_validate(p)
             for p in products
         ]
@@ -73,9 +75,13 @@ async def read_product(
     if not product:
         raise HTTPException(status_code=404, detail="Продукт не найден")
 
-    if current_user and current_user.is_superuser:
-        return ProductReadSuperuser.model_validate(product)
-    return ProductReadUser.model_validate(product)
+    is_admin = current_user and current_user.is_superuser
+
+    return (
+        ProductReadSuperuser.model_validate(product)
+        if is_admin
+        else ProductReadUser.model_validate(product)
+    )
 
 
 @router.patch("/{product_id}", response_model=ProductReadSuperuser, summary="Обновить продукт по ID")

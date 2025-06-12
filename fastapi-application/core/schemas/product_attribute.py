@@ -1,5 +1,8 @@
 from typing import Optional
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, field_serializer
+
+# ---------- Константа для namespace ----------
+META_PREFIX = "meta_"
 
 
 # ---------- Определение атрибута ----------
@@ -44,3 +47,7 @@ class ProductAttributeValueRead(ProductAttributeValueBase):
     unit: Optional[str] = None   # Единица измерения
 
     model_config = ConfigDict(from_attributes=True)
+
+    @field_serializer("name")
+    def remove_meta_prefix(self, name: str, _info) -> str:
+        return name.removeprefix(META_PREFIX)

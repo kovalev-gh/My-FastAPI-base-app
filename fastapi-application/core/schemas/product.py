@@ -1,5 +1,8 @@
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, field_serializer
 from typing import Optional, List
+
+# ---------- Константа для namespace ----------
+META_PREFIX = "meta_"
 
 
 # ---------- Атрибуты продукта ----------
@@ -9,14 +12,24 @@ class ProductAttributeInput(BaseModel):
     value: str
 
 
-class ProductAttributeRead(BaseModel):
+class ProductAttributeReadBase(BaseModel):
     id: int
     attribute_id: int
     value: str
-    name: str  # имя характеристики (join с Definition)
+    name: str
     unit: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class ProductAttributeReadUser(ProductAttributeReadBase):
+    @field_serializer("name")
+    def remove_meta_prefix(self, name: str, _info) -> str:
+        return name.removeprefix(META_PREFIX)
+
+
+class ProductAttributeReadSuperuser(ProductAttributeReadBase):
+    pass  # Показывает имя как есть, с meta_
 
 
 # ---------- Основные модели товара ----------
@@ -37,7 +50,7 @@ class ProductBaseExtended(ProductBase):
 # ---------- Создание и обновление ----------
 
 class ProductCreate(ProductBaseExtended):
-    attributes: Optional[List[ProductAttributeInput]] = []  # 🟢 Сделали необязательным
+    attributes: Optional[List[ProductAttributeInput]] = []
 
 
 class ProductUpdate(ProductBaseExtended):
@@ -55,16 +68,16 @@ class ProductReadBase(ProductBase):
     retail_price: Optional[int]
     quantity: Optional[int]
     category_id: Optional[int]
-    attributes: List[ProductAttributeRead] = []  # 🟢 Безопасное значение по умолчанию
 
     model_config = ConfigDict(from_attributes=True)
 
 
 class ProductReadUser(ProductReadBase):
-    pass
+    attributes: List[ProductAttributeReadUser] = []
 
 
 class ProductReadSuperuser(ProductReadBase):
     opt_price: Optional[int] = None
+    attributes: List[ProductAttributeReadSuperuser] = []
 
     model_config = ConfigDict(from_attributes=True)

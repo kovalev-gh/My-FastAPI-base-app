@@ -1,4 +1,4 @@
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.orm import Mapped, mapped_column, relationship, validates
 from sqlalchemy import ForeignKey, String, Table, Column, Integer
 from core.models.base import Base
 
@@ -16,7 +16,7 @@ class ProductAttributeDefinition(Base):
     __tablename__ = "product_attribute_definitions"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    name: Mapped[str] = mapped_column(String, nullable=False)  # Например: "Диагональ"
+    name: Mapped[str] = mapped_column(String, nullable=False)  # Например: "meta_color"
     unit: Mapped[str | None] = mapped_column(String, nullable=True)  # Например: "дюймы"
 
     # 🔄 связь с категориями (многие ко многим)
@@ -24,6 +24,13 @@ class ProductAttributeDefinition(Base):
         secondary=attribute_category_link,
         back_populates="attributes"
     )
+
+    @validates("name")
+    def validate_name_prefix(self, key, name: str) -> str:
+        """Гарантирует, что имя начинается с 'meta_'"""
+        if not name.startswith("meta_"):
+            raise ValueError("Имя атрибута должно начинаться с 'meta_'")
+        return name
 
 
 class ProductAttributeValue(Base):
@@ -39,3 +46,11 @@ class ProductAttributeValue(Base):
     # 🔁 связь с товаром и определением
     product: Mapped["Product"] = relationship(back_populates="attributes")
     attribute: Mapped["ProductAttributeDefinition"] = relationship()
+
+    def to_serializable_pair(self) -> tuple[str, str]:
+        """
+        Возвращает пару ключ-значение: ('color', 'red'),
+        где 'color' — имя атрибута без префикса 'meta_'
+        """
+        key = self.attribute.name.removeprefix("meta_")
+        return key, self.value

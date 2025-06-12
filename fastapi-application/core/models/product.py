@@ -1,5 +1,3 @@
-# core/models/product.py
-
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import ForeignKey, Integer, String, Boolean, Text
 from core.models.mixins.int_id_pk import IntIdPkMixin
@@ -38,3 +36,15 @@ class Product(IntIdPkMixin, Base):
         back_populates="product",
         cascade="all, delete-orphan"
     )
+
+    @property
+    def serialized_attributes(self) -> dict[str, str]:
+        """
+        Возвращает атрибуты в виде словаря с удалением префикса 'meta_':
+        { "color": "red", "size": "L" }
+        """
+        return {
+            key: value
+            for attr in self.attributes
+            for key, value in [attr.to_serializable_pair()]
+        }
