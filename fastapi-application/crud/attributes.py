@@ -29,9 +29,13 @@ async def get_attribute_by_name(session: AsyncSession, name: str) -> ProductAttr
     return result.scalar_one_or_none()
 
 
-# Создать новый атрибут (без глобальной проверки уникальности имени)
+# Создать новый атрибут с проверкой уникальности имени в базе
 async def create_attribute(session: AsyncSession, name: str, unit: str | None = None) -> ProductAttributeDefinition:
-    # Убираем глобальную проверку на уникальность имени (разрешаем одинаковые имена для разных категорий)
+    # Проверяем, что атрибут с таким именем уже не существует в базе
+    existing_attr = await get_attribute_by_name(session, name)
+    if existing_attr:
+        raise HTTPException(status_code=400, detail="ATTRIBUTE_NAME_CONFLICT")
+
     new_attr = ProductAttributeDefinition(name=name, unit=unit)
     session.add(new_attr)
     await session.commit()
@@ -113,4 +117,3 @@ async def unlink_attribute_from_category(session: AsyncSession, category_id: int
     )
     await session.commit()
     return {"message": "ATTRIBUTE_UNLINKED_SUCCESSFULLY"}
-

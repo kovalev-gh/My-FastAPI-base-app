@@ -1,4 +1,3 @@
-// ✅ CategoryAttributeManager.tsx
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import {
@@ -41,17 +40,23 @@ const CategoryAttributeManager: React.FC = () => {
     if (!newAttrName.trim() || selectedCategoryId === null) return;
 
     try {
-      let attr = allAttributes.find((a) => a.name === newAttrName);
+      // Ищем атрибут с таким именем без префикса meta
+      let attr = allAttributes.find((a) => {
+        const displayName = a.name.startsWith("meta_") ? a.name.slice(5) : a.name;
+        return displayName === newAttrName.trim();
+      });
 
       if (!attr) {
+        // Создаем новый атрибут с префиксом meta_
         const res = await createAttribute({
-          name: newAttrName.trim(),
+          name: "meta_" + newAttrName.trim(),
           unit: newAttrUnit.trim() || undefined,
         });
         attr = res.data;
         setAllAttributes([...allAttributes, attr]);
       }
 
+      // Привязываем атрибут к выбранной категории
       await bindAttributeToCategory(selectedCategoryId, attr.id);
 
       const updated = await getCategoryAttributes(selectedCategoryId);
@@ -59,9 +64,11 @@ const CategoryAttributeManager: React.FC = () => {
       setNewAttrName("");
       setNewAttrUnit("");
     } catch (err: any) {
-      if (err.response?.data?.detail === "ATTRIBUTE_NAME_CONFLICT") {
+      const detail = err.response?.data?.detail;
+
+      if (detail === "ATTRIBUTE_NAME_CONFLICT" || detail?.includes("конфликтует с системным полем")) {
         setError("Атрибут с таким именем уже существует.");
-      } else if (err.response?.data?.detail === "ATTRIBUTE_ALREADY_LINKED") {
+      } else if (detail === "ATTRIBUTE_ALREADY_LINKED" || detail?.includes("уже существует в этой категории")) {
         setError("Атрибут уже привязан к этой категории.");
       } else {
         setError("Произошла неизвестная ошибка.");
@@ -99,14 +106,17 @@ const CategoryAttributeManager: React.FC = () => {
         <>
           <h3>Атрибуты категории</h3>
           <ul>
-            {attributes.map((attr) => (
-              <li key={attr.id} style={{ marginBottom: "0.4rem" }}>
-                {attr.name} {attr.unit ? `(${attr.unit})` : ""}
-                <button onClick={() => handleRemoveAttribute(attr.id)} style={{ marginLeft: "1rem" }}>
-                  Удалить
-                </button>
-              </li>
-            ))}
+            {attributes.map((attr) => {
+              const displayName = attr.name.startsWith("meta_") ? attr.name.slice(5) : attr.name;
+              return (
+                <li key={attr.id} style={{ marginBottom: "0.4rem" }}>
+                  {displayName} {attr.unit ? `(${attr.unit})` : ""}
+                  <button onClick={() => handleRemoveAttribute(attr.id)} style={{ marginLeft: "1rem" }}>
+                    Удалить
+                  </button>
+                </li>
+              );
+            })}
           </ul>
 
           <h4>Добавить атрибут</h4>
