@@ -56,8 +56,9 @@ export default function ProductForm() {
       return;
     }
     getAttributesByCategory(Number(form.categoryId))
-      .then(data => {
-        setAttributesOptions(data || []);
+      .then(response => {
+        // Берём именно response.data
+        setAttributesOptions(response.data || []);
         setAttributes([{ key: "", value: "" }]);
       })
       .catch(() => setMessage("❌ Не удалось загрузить характеристики категории"));
