@@ -113,3 +113,4 @@ async def unlink_attribute_from_category(session: AsyncSession, category_id: int
     )
     await session.commit()
     return {"message": "ATTRIBUTE_UNLINKED_SUCCESSFULLY"}
+

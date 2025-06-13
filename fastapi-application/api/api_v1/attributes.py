@@ -39,7 +39,7 @@ def get_reserved_product_fields() -> set[str]:
 # ---------- Список всех атрибутов ----------
 
 @router.get(
-    "/",
+    "",
     summary="Список всех атрибутов (автоопределение роли)",
     response_model=List[AttributeOutPublic]
 )
@@ -63,7 +63,7 @@ async def list_all_attributes(
 # ---------- Создание атрибута ----------
 
 @router.post(
-    "/",
+    "",
     summary="Создать атрибут",
     response_model=AttributeOutAdmin  # Всегда возвращаем как есть (с meta_) для контроля
 )
