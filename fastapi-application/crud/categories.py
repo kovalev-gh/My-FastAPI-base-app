@@ -76,3 +76,14 @@ async def get_categories_with_attributes(session: AsyncSession):
         .order_by(Category.name)
     )
     return result.scalars().all()
+
+async def get_category_with_attributes(session: AsyncSession, category_id: int) -> Category:
+    result = await session.execute(
+        select(Category)
+        .options(selectinload(Category.attributes))
+        .where(Category.id == category_id, Category.is_deleted == False)
+    )
+    category = result.scalar_one_or_none()
+    if not category:
+        raise HTTPException(status_code=404, detail="Category not found")
+    return category

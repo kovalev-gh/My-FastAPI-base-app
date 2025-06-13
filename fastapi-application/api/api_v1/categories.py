@@ -1,5 +1,5 @@
 from typing import List, Annotated
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Path
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.models import db_helper
@@ -11,7 +11,8 @@ from crud.categories import (
     update_category,
     soft_delete_category,
     restore_category,
-    get_categories_with_attributes
+    get_categories_with_attributes,
+    get_category_with_attributes  # добавлен импорт новой функции
 )
 from api.api_v1.deps import get_current_superuser
 
@@ -67,8 +68,19 @@ async def delete_category(
         raise HTTPException(status_code=404, detail="Категория не найдена")
     return {"message": "Категория помечена как удалённая"}
 
+
 @router.get("/with-attributes", summary="Категории с привязанными атрибутами", response_model=List[CategoryWithAttributes])
 async def list_categories_with_attributes(
     session: Annotated[AsyncSession, Depends(db_helper.session_getter)],
 ):
     return await get_categories_with_attributes(session)
+
+
+# Новый эндпоинт — получить категорию по ID с атрибутами
+@router.get("/{category_id}/with-attributes", summary="Категория с атрибутами по ID", response_model=CategoryWithAttributes)
+async def get_category_with_attributes_endpoint(
+    category_id: Annotated[int, Path()],
+    session: Annotated[AsyncSession, Depends(db_helper.session_getter)],
+):
+    category = await get_category_with_attributes(session, category_id)
+    return category
