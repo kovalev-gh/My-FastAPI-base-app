@@ -40,7 +40,7 @@ const CategoryAttributeManager: React.FC = () => {
     if (!newAttrName.trim() || selectedCategoryId === null) return;
 
     try {
-      // Ищем атрибут с таким именем без префикса meta
+      // Ищем атрибут с таким именем без префикса meta_
       let attr = allAttributes.find((a) => {
         const displayName = a.name.startsWith("meta_") ? a.name.slice(5) : a.name;
         return displayName === newAttrName.trim();
@@ -64,11 +64,13 @@ const CategoryAttributeManager: React.FC = () => {
       setNewAttrName("");
       setNewAttrUnit("");
     } catch (err: any) {
-      const detail = err.response?.data?.detail;
+      const detail = err.response?.data?.detail || "";
 
-      if (detail === "ATTRIBUTE_NAME_CONFLICT" || detail?.includes("конфликтует с системным полем")) {
+      if (detail === "ATTRIBUTE_NAME_CONFLICT") {
         setError("Атрибут с таким именем уже существует.");
-      } else if (detail === "ATTRIBUTE_ALREADY_LINKED" || detail?.includes("уже существует в этой категории")) {
+      } else if (detail.includes("конфликтует с системным полем модели Product")) {
+        setError("Нельзя создать атрибут с именем поля продукта.");
+      } else if (detail === "ATTRIBUTE_ALREADY_LINKED" || detail.includes("уже существует в этой категории")) {
         setError("Атрибут уже привязан к этой категории.");
       } else {
         setError("Произошла неизвестная ошибка.");
