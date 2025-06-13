@@ -12,11 +12,11 @@ from crud.categories import (
     soft_delete_category,
     restore_category,
     get_categories_with_attributes,
-    get_category_with_attributes  # добавлен импорт новой функции
+    get_category_with_attributes
 )
 from api.api_v1.deps import get_current_superuser
 
-router = APIRouter(prefix="/categories", tags=["Category"])
+router = APIRouter(tags=["Category"])
 
 
 @router.get("/", response_model=List[CategoryRead], summary="Получить список категорий")

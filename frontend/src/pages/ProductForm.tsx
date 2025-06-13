@@ -11,6 +11,7 @@ import {
   setMainImage as setMainImageApi,
 } from "../api/products";
 import { getCategories } from "../api/categories";
+import { getAttributesByCategory } from "../api/attributes";
 
 export default function ProductForm() {
   const { productId } = useParams();
@@ -28,23 +29,41 @@ export default function ProductForm() {
   });
 
   const [categories, setCategories] = useState([]);
+  const [attributesOptions, setAttributesOptions] = useState([]);
+  const [attributes, setAttributes] = useState([{ key: "", value: "" }]);
   const [files, setFiles] = useState([]);
   const [filePreviews, setFilePreviews] = useState([]);
   const [mainImageIndex, setMainImageIndex] = useState(null);
   const [existingImages, setExistingImages] = useState([]);
-  const [attributes, setAttributes] = useState([{ key: "", value: "" }]);
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
 
   const updateField = (field, value) =>
     setForm(prev => ({ ...prev, [field]: value }));
 
+  // Загрузка категорий
   useEffect(() => {
     getCategories()
-      .then((data) => setCategories(data || []))
+      .then(data => setCategories(data || []))
       .catch(() => setMessage("❌ Не удалось загрузить категории"));
   }, []);
 
+  // Загрузка атрибутов при смене категории
+  useEffect(() => {
+    if (!form.categoryId) {
+      setAttributesOptions([]);
+      setAttributes([{ key: "", value: "" }]);
+      return;
+    }
+    getAttributesByCategory(Number(form.categoryId))
+      .then(data => {
+        setAttributesOptions(data || []);
+        setAttributes([{ key: "", value: "" }]);
+      })
+      .catch(() => setMessage("❌ Не удалось загрузить характеристики категории"));
+  }, [form.categoryId]);
+
+  // Загрузка продукта при редактировании
   useEffect(() => {
     const fetchData = async () => {
       if (!productId) return;
@@ -77,12 +96,8 @@ export default function ProductForm() {
         setLoading(false);
       }
     };
-
     fetchData();
   }, [productId]);
-
-  const normalizeNumberInput = v =>
-    v.replace(/^0+(?!$)/, "").replace(/\D/g, "") || "0";
 
   const handleFileChange = e => {
     const selected = Array.from(e.target.files ?? []);
@@ -97,19 +112,19 @@ export default function ProductForm() {
     setAttributes(newAttrs);
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async e => {
     e.preventDefault();
 
     if (!form.title.trim()) return setMessage("❌ Укажите название товара.");
-    if (!form.sku?.trim()) return setMessage("❌ Укажите артикул (SKU).");
-    if (Number.isNaN(+form.retailPrice)) return setMessage("❌ Розничная цена должна быть числом.");
-    if (Number.isNaN(+form.optPrice)) return setMessage("❌ Оптовая цена должна быть числом.");
-    if (Number.isNaN(+form.quantity)) return setMessage("❌ Количество должно быть числом.");
-    if (!form.categoryId || Number.isNaN(+form.categoryId)) return setMessage("❌ Выберите категорию.");
+    if (!form.sku.trim()) return setMessage("❌ Укажите артикул (SKU).");
+    if (isNaN(+form.retailPrice)) return setMessage("❌ Розничная цена должна быть числом.");
+    if (isNaN(+form.optPrice)) return setMessage("❌ Оптовая цена должна быть числом.");
+    if (isNaN(+form.quantity)) return setMessage("❌ Количество должно быть числом.");
+    if (!form.categoryId || isNaN(+form.categoryId)) return setMessage("❌ Выберите категорию.");
 
     const attributesList = attributes
-      .filter((a) => a.key && a.value)
-      .map((a) => ({ attribute_id: Number(a.key), value: a.value }));
+      .filter(a => a.key && a.value)
+      .map(a => ({ attribute_id: Number(a.key), value: a.value }));
 
     const payload = {
       title: form.title,
@@ -119,11 +134,8 @@ export default function ProductForm() {
       opt_price: +form.optPrice,
       quantity: +form.quantity,
       category_id: +form.categoryId,
+      ...(attributesList.length > 0 && { attributes: attributesList }),
     };
-
-    if (attributesList.length > 0) {
-      payload.attributes = attributesList;
-    }
 
     try {
       const res = productId
@@ -140,11 +152,8 @@ export default function ProductForm() {
         const ids = [];
         for (const file of files) {
           const r = await uploadProductImage(product.id, file, form.subfolder);
-          if (r?.data?.image_id) {
-            ids.push(r.data.image_id);
-          }
+          if (r?.data?.image_id) ids.push(r.data.image_id);
         }
-
         if (mainImageIndex !== null && ids[mainImageIndex]) {
           await setMainImageApi(ids[mainImageIndex]);
         }
@@ -168,7 +177,6 @@ export default function ProductForm() {
         setAttributes([{ key: "", value: "" }]);
         setMainImageIndex(null);
       }
-
     } catch (err) {
       console.error("Ошибка:", err);
       if (err.response?.data?.detail) {
@@ -215,7 +223,7 @@ export default function ProductForm() {
   return (
     <div>
       <h2>{productId ? "Редактировать продукт" : "Добавить продукт"}</h2>
-      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxWidth: '600px' }}>
+      <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "0.5rem", maxWidth: "600px" }}>
         <label>Название</label>
         <input type="text" value={form.title} onChange={e => updateField("title", e.target.value)} required />
 
@@ -226,13 +234,13 @@ export default function ProductForm() {
         <input type="text" value={form.sku} onChange={e => updateField("sku", e.target.value)} required />
 
         <label>Розничная цена</label>
-        <input type="text" value={form.retailPrice} onChange={e => updateField("retailPrice", normalizeNumberInput(e.target.value))} />
+        <input type="text" value={form.retailPrice} onChange={e => updateField("retailPrice", e.target.value.replace(/\D/g, ''))} />
 
         <label>Оптовая цена</label>
-        <input type="text" value={form.optPrice} onChange={e => updateField("optPrice", normalizeNumberInput(e.target.value))} />
+        <input type="text" value={form.optPrice} onChange={e => updateField("optPrice", e.target.value.replace(/\D/g, ''))} />
 
         <label>Количество</label>
-        <input type="text" value={form.quantity} onChange={e => updateField("quantity", normalizeNumberInput(e.target.value))} />
+        <input type="text" value={form.quantity} onChange={e => updateField("quantity", e.target.value.replace(/\D/g, ''))} />
 
         <label>Путь к папке фото</label>
         <input
@@ -243,11 +251,7 @@ export default function ProductForm() {
         />
 
         <label>Категория</label>
-        <select
-          value={form.categoryId}
-          onChange={(e) => updateField("categoryId", e.target.value)}
-          required
-        >
+        <select value={form.categoryId} onChange={e => updateField("categoryId", e.target.value)} required>
           <option value="">— выбрать категорию —</option>
           {categories.map(cat => (
             <option key={cat.id} value={cat.id}>{cat.name}</option>
@@ -256,9 +260,24 @@ export default function ProductForm() {
 
         <label>Характеристики</label>
         {attributes.map((attr, i) => (
-          <div key={i} style={{ display: 'flex', gap: '0.5rem' }}>
-            <input value={attr.key} onChange={e => handleAttributeChange(i, "key", e.target.value)} placeholder="ID характеристики" />
-            <input value={attr.value} onChange={e => handleAttributeChange(i, "value", e.target.value)} placeholder="Значение" />
+          <div key={i} style={{ display: "flex", gap: "0.5rem" }}>
+            <select
+              value={attr.key}
+              onChange={e => handleAttributeChange(i, "key", e.target.value)}
+              required
+            >
+              <option value="">— выбрать характеристику —</option>
+              {attributesOptions.map(opt => (
+                <option key={opt.id} value={opt.id}>{opt.name}</option>
+              ))}
+            </select>
+            <input
+              type="text"
+              value={attr.value}
+              onChange={e => handleAttributeChange(i, "value", e.target.value)}
+              placeholder="Значение"
+              required
+            />
             {attributes.length > 1 && (
               <button type="button" onClick={() => setAttributes(attributes.filter((_, j) => j !== i))}>✕</button>
             )}
@@ -270,10 +289,10 @@ export default function ProductForm() {
         <input type="file" multiple accept="image/*" onChange={handleFileChange} />
 
         {filePreviews.length > 0 && (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', marginTop: '1rem' }}>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "1rem", marginTop: "1rem" }}>
             {filePreviews.map((src, i) => (
-              <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                <img src={src} alt="" style={{ width: '100px', height: '100px', objectFit: 'cover', borderRadius: '4px' }} />
+              <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+                <img src={src} alt="" style={{ width: "100px", height: "100px", objectFit: "cover", borderRadius: "4px" }} />
                 <button type="button" onClick={() => setMainImageIndex(i)}>
                   {mainImageIndex === i ? "Главное" : "Сделать главной"}
                 </button>
@@ -283,10 +302,10 @@ export default function ProductForm() {
         )}
 
         {existingImages.length > 0 && (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', marginTop: '1rem' }}>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "1rem", marginTop: "1rem" }}>
             {existingImages.map(img => (
-              <div key={img.id} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                <img src={img.image_path.startsWith("http") ? img.image_path : `/media/${img.image_path}`} alt="" style={{ width: '100px', height: '100px', objectFit: 'cover', borderRadius: '4px' }} />
+              <div key={img.id} style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+                <img src={img.image_path.startsWith("http") ? img.image_path : `/media/${img.image_path}`} alt="" style={{ width: "100px", height: "100px", objectFit: "cover", borderRadius: "4px" }} />
                 <button type="button" onClick={() => handleSetMainImage(img.id)}>Сделать главной</button>
                 <button type="button" onClick={() => handleDeleteImage(img.id)}>Удалить</button>
               </div>

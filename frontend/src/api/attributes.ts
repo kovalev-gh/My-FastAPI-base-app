@@ -1,21 +1,16 @@
 import api from './axios';
 
-// Получить все доступные атрибуты
 export const getAllAttributes = () =>
-  api.get('/attributes/attributes');
+  api.get('/attributes').then(res => res.data);
 
-// ✅ Создать новый атрибут с названием и (необязательной) единицей измерения
 export const createAttribute = (data: { name: string; unit?: string }) =>
-  api.post('/attributes/attributes', data);
+  api.post('/attributes', data).then(res => res.data);
 
-// Получить все атрибуты, связанные с категорией
-export const getCategoryAttributes = (categoryId: number) =>
-  api.get(`/attributes/attributes/category/${categoryId}`);
+export const getAttributesByCategory = (categoryId: number) =>
+  api.get(`/attributes/category/${categoryId}`).then(res => res.data);
 
-// Привязать атрибут к категории
 export const bindAttributeToCategory = (categoryId: number, attributeId: number) =>
-  api.post(`/attributes/attributes/category/${categoryId}/${attributeId}`);
+  api.post(`/attributes/category/${categoryId}/${attributeId}`).then(res => res.data);
 
-// Отвязать атрибут от категории
 export const unbindAttributeFromCategory = (categoryId: number, attributeId: number) =>
-  api.delete(`/attributes/attributes/category/${categoryId}/${attributeId}`);
+  api.delete(`/attributes/category/${categoryId}/${attributeId}`).then(res => res.data);
