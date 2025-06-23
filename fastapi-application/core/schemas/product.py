@@ -27,6 +27,8 @@ class ProductAttributeReadUser(ProductAttributeReadBase):
     def remove_meta_prefix(self, name: str, _info) -> str:
         return name.removeprefix(META_PREFIX)
 
+    model_config = ConfigDict(from_attributes=True)
+
 
 class ProductAttributeReadSuperuser(ProductAttributeReadBase):
     pass  # Показывает имя как есть, с meta_
@@ -74,6 +76,8 @@ class ProductReadBase(ProductBase):
 
 class ProductReadUser(ProductReadBase):
     attributes: List[ProductAttributeReadUser] = []
+
+    model_config = ConfigDict(from_attributes=True)
 
 
 class ProductReadSuperuser(ProductReadBase):

@@ -13,7 +13,9 @@ async def get_all_products(session: AsyncSession) -> Sequence[Product]:
     stmt = (
         select(Product)
         .where(Product.is_deleted == False)
-        .options(selectinload(Product.attributes))
+        .options(
+            selectinload(Product.attributes).selectinload(ProductAttributeValue.attribute)
+        )
         .order_by(Product.id)
     )
     result = await session.scalars(stmt)
@@ -30,7 +32,9 @@ async def get_products_with_pagination(
 
     result = await session.execute(
         select(Product)
-        .options(selectinload(Product.attributes))
+        .options(
+            selectinload(Product.attributes).selectinload(ProductAttributeValue.attribute)
+        )
         .where(Product.is_deleted == False)
         .order_by(Product.id)
         .offset(offset)
@@ -43,7 +47,9 @@ async def get_products_with_pagination(
 async def get_product_by_id(session: AsyncSession, product_id: int) -> Product | None:
     stmt = (
         select(Product)
-        .options(selectinload(Product.attributes))
+        .options(
+            selectinload(Product.attributes).selectinload(ProductAttributeValue.attribute)
+        )
         .where(Product.id == product_id)
     )
     result = await session.execute(stmt)
@@ -82,10 +88,12 @@ async def create_product(session: AsyncSession, product_create: ProductCreate) -
     session.add(product)
     await session.commit()
 
-    # Загрузить продукт вместе с атрибутами
+    # Загрузить продукт вместе с атрибутами и их определениями
     stmt = (
         select(Product)
-        .options(selectinload(Product.attributes))
+        .options(
+            selectinload(Product.attributes).selectinload(ProductAttributeValue.attribute)
+        )
         .where(Product.id == product.id)
     )
     result = await session.execute(stmt)

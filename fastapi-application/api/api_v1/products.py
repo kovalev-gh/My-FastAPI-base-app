@@ -48,8 +48,8 @@ async def get_products(
     return {
         "total": total,
         "items": [
-            ProductReadSuperuser.model_validate(p) if is_admin
-            else ProductReadUser.model_validate(p)
+            ProductReadSuperuser.model_validate(p, from_attributes=True) if is_admin
+            else ProductReadUser.model_validate(p, from_attributes=True)
             for p in products
         ]
     }
@@ -62,7 +62,7 @@ async def create_product_endpoint(
     product_create: ProductCreate,
 ):
     product = await create_product(session=session, product_create=product_create)
-    return ProductReadSuperuser.model_validate(product)
+    return ProductReadSuperuser.model_validate(product, from_attributes=True)
 
 
 @router.get("/{product_id}", summary="Получить продукт по ID")
@@ -78,9 +78,9 @@ async def read_product(
     is_admin = current_user and current_user.is_superuser
 
     return (
-        ProductReadSuperuser.model_validate(product)
+        ProductReadSuperuser.model_validate(product, from_attributes=True)
         if is_admin
-        else ProductReadUser.model_validate(product)
+        else ProductReadUser.model_validate(product, from_attributes=True)
     )
 
 
@@ -96,7 +96,7 @@ async def update_product_endpoint(
         product_id=product_id,
         update_data=update_data.model_dump(exclude_unset=True),
     )
-    return ProductReadSuperuser.model_validate(updated_product)
+    return ProductReadSuperuser.model_validate(updated_product, from_attributes=True)
 
 
 @router.delete("/{product_id}", summary="Удалить продукт по ID")

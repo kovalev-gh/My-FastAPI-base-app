@@ -47,6 +47,16 @@ class ProductAttributeValue(Base):
     product: Mapped["Product"] = relationship(back_populates="attributes")
     attribute: Mapped["ProductAttributeDefinition"] = relationship()
 
+    @property
+    def name(self) -> str:
+        """Имя атрибута (напр. 'meta_color')"""
+        return self.attribute.name
+
+    @property
+    def unit(self) -> str | None:
+        """Единица измерения атрибута (напр. 'дюймы')"""
+        return self.attribute.unit
+
     def to_serializable_pair(self) -> tuple[str, str]:
         """
         Возвращает пару ключ-значение: ('color', 'red'),
