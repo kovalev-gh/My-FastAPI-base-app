@@ -11,318 +11,264 @@ import {
   setMainImage as setMainImageApi,
 } from "../api/products";
 import { getCategories } from "../api/categories";
-import { getAttributesByCategory } from "../api/attributes";
+import { getAllAttributes } from "../api/attributes";
 
 export default function ProductForm() {
-  const { productId } = useParams();
+  const { productId } = useParams<{ productId: string }>();
   const navigate = useNavigate();
 
-  const [form, setForm] = useState({
-    title: "",
-    description: "",
-    sku: "",
-    retailPrice: "0",
-    optPrice: "0",
-    quantity: "0",
-    subfolder: "",
-    categoryId: "",
-  });
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [retailPrice, setRetailPrice] = useState("0");
+  const [optPrice, setOptPrice] = useState("0");
+  const [quantity, setQuantity] = useState("0");
+  const [subfolder, setSubfolder] = useState("");
+  const [categoryId, setCategoryId] = useState<number | null>(null);
+  const [categories, setCategories] = useState<{ id: number; name: string }[]>([]);
 
-  const [categories, setCategories] = useState([]);
-  const [attributesOptions, setAttributesOptions] = useState([]);
-  const [attributes, setAttributes] = useState([{ key: "", value: "" }]);
-  const [files, setFiles] = useState([]);
-  const [filePreviews, setFilePreviews] = useState([]);
-  const [mainImageIndex, setMainImageIndex] = useState(null);
-  const [existingImages, setExistingImages] = useState([]);
-  const [message, setMessage] = useState("");
+  const [attributes, setAttributes] = useState<any[]>([]);
+  const [selectedAttributes, setSelectedAttributes] = useState<any[]>([]);
+
+  const [files, setFiles] = useState<File[]>([]);
+  const [filePreviews, setFilePreviews] = useState<string[]>([]);
+  const [mainImageIndex, setMainImageIndex] = useState<number | null>(0);
+  const [existingImages, setExistingImages] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState("");
 
-  const updateField = (field, value) =>
-    setForm(prev => ({ ...prev, [field]: value }));
-
-  // Загрузка категорий
   useEffect(() => {
-    getCategories()
-      .then(data => setCategories(data || []))
-      .catch(() => setMessage("❌ Не удалось загрузить категории"));
+    getCategories().then(setCategories);
+    getAllAttributes().then((res) => setAttributes(res?.data || res));
   }, []);
 
-  // Загрузка атрибутов при смене категории
   useEffect(() => {
-    if (!form.categoryId) {
-      setAttributesOptions([]);
-      setAttributes([{ key: "", value: "" }]);
-      return;
-    }
-    getAttributesByCategory(Number(form.categoryId))
-      .then(response => {
-        // Берём именно response.data
-        setAttributesOptions(response.data || []);
-        setAttributes([{ key: "", value: "" }]);
-      })
-      .catch(() => setMessage("❌ Не удалось загрузить характеристики категории"));
-  }, [form.categoryId]);
-
-  // Загрузка продукта при редактировании
-  useEffect(() => {
-    const fetchData = async () => {
+    const fetchProduct = async () => {
       if (!productId) return;
-      setLoading(true);
+
       try {
+        setLoading(true);
         const { data } = await getProductById(productId);
-        setForm({
-          title: data.title ?? "",
-          description: data.description ?? "",
-          sku: data.sku ?? "",
-          retailPrice: String(data.retail_price ?? "0"),
-          optPrice: String(data.opt_price ?? "0"),
-          quantity: String(data.quantity ?? "0"),
-          subfolder: "",
-          categoryId: String(data.category_id ?? ""),
-        });
 
-        const attrArray = Array.isArray(data.attributes)
-          ? data.attributes
-          : Object.entries(data.attributes || {}).map(([k, v]) => ({ key: k, value: String(v) }));
-        setAttributes(attrArray.length ? attrArray : [{ key: "", value: "" }]);
+        setTitle(data.title ?? "");
+        setDescription(data.description ?? "");
+        setRetailPrice(data.retail_price?.toString() ?? "0");
+        setOptPrice(data.opt_price?.toString() ?? "0");
+        setQuantity(data.quantity?.toString() ?? "0");
+        setSubfolder(data.path ?? "");
+        setCategoryId(data.category_id ?? null);
+        setSelectedAttributes(data.attributes || []);
 
-        const imagesRes = await getProductImages(productId);
-        const imgs = imagesRes.data || [];
-        setExistingImages(imgs);
-        setMainImageIndex(imgs.findIndex(img => img.is_main));
-      } catch {
-        setMessage("❌ Не удалось загрузить товар");
+        const images = await getProductImages(productId);
+        if (Array.isArray(images)) {
+          setExistingImages(images);
+          const mainIndex = images.findIndex((img: any) => img.is_main);
+          setMainImageIndex(mainIndex >= 0 ? mainIndex : null);
+        }
+      } catch (err) {
+        console.error("Ошибка загрузки товара", err);
+        setMessage("❌ Не удалось загрузить товар.");
       } finally {
         setLoading(false);
       }
     };
-    fetchData();
+
+    fetchProduct();
   }, [productId]);
 
-  const handleFileChange = e => {
+  const normalizeNumberInput = (value: string) => {
+    return value.replace(/^0+(?!$)/, "").replace(/\D/g, "") || "0";
+  };
+
+  const getAbsoluteImageUrl = (url: string): string => {
+    if (url.startsWith("http")) return url;
+    const mediaIndex = url.indexOf("media/");
+    if (mediaIndex !== -1) {
+      return "/" + url.slice(mediaIndex);
+    }
+    return `/media/${url.replace(/^\/+/, "")}`;
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = Array.from(e.target.files ?? []);
     setFiles(selected);
-    setFilePreviews(selected.map(f => URL.createObjectURL(f)));
+    setFilePreviews(selected.map((file) => URL.createObjectURL(file)));
     setMainImageIndex(0);
   };
 
-  const handleAttributeChange = (i, field, val) => {
-    const newAttrs = [...attributes];
-    newAttrs[i][field] = val;
-    setAttributes(newAttrs);
+  const handleAddAttribute = () => {
+    setSelectedAttributes([...selectedAttributes, { attribute_id: "", value: "" }]);
   };
 
-  const handleSubmit = async e => {
+  const handleAttrChange = (index: number, field: string, value: string) => {
+    const updated = [...selectedAttributes];
+    updated[index][field] = value;
+    setSelectedAttributes(updated);
+  };
+
+  const handleRemoveAttr = (index: number) => {
+    const updated = [...selectedAttributes];
+    updated.splice(index, 1);
+    setSelectedAttributes(updated);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (!form.title.trim()) return setMessage("❌ Укажите название товара.");
-    if (!form.sku.trim()) return setMessage("❌ Укажите артикул (SKU).");
-    if (isNaN(+form.retailPrice)) return setMessage("❌ Розничная цена должна быть числом.");
-    if (isNaN(+form.optPrice)) return setMessage("❌ Оптовая цена должна быть числом.");
-    if (isNaN(+form.quantity)) return setMessage("❌ Количество должно быть числом.");
-    if (!form.categoryId || isNaN(+form.categoryId)) return setMessage("❌ Выберите категорию.");
-
-    const attributesList = attributes
-      .filter(a => a.key && a.value)
-      .map(a => ({ attribute_id: Number(a.key), value: a.value }));
-
-    const payload = {
-      title: form.title,
-      description: form.description,
-      sku: form.sku,
-      retail_price: +form.retailPrice,
-      opt_price: +form.optPrice,
-      quantity: +form.quantity,
-      category_id: +form.categoryId,
-      ...(attributesList.length > 0 && { attributes: attributesList }),
-    };
+    setMessage("");
 
     try {
-      const res = productId
+      const payload = {
+        title,
+        description,
+        retail_price: parseInt(retailPrice, 10),
+        opt_price: parseInt(optPrice, 10),
+        quantity: parseInt(quantity, 10),
+        path: subfolder,
+        category_id: categoryId!,
+        attributes: selectedAttributes,
+      };
+
+      const product = productId
         ? await updateProduct(productId, payload)
         : await createProduct(payload);
 
-      const product = res?.data ?? res;
-      if (!product?.id) {
-        setMessage("❌ Ошибка: не получен ID продукта.");
-        return;
-      }
+      if (files.length > 0 && subfolder) {
+        const uploadedImageIds: string[] = [];
 
-      if (files.length && form.subfolder) {
-        const ids = [];
         for (const file of files) {
-          const r = await uploadProductImage(product.id, file, form.subfolder);
-          if (r?.data?.image_id) ids.push(r.data.image_id);
+          const result = await uploadProductImage(product.id, file, subfolder);
+          uploadedImageIds.push(result.image_id);
         }
-        if (mainImageIndex !== null && ids[mainImageIndex]) {
-          await setMainImageApi(ids[mainImageIndex]);
+
+        if (mainImageIndex !== null && uploadedImageIds[mainImageIndex]) {
+          await setMainImageApi(uploadedImageIds[mainImageIndex]);
         }
       }
 
-      setMessage("✅ Продукт успешно сохранён!");
-
-      if (!productId) {
-        setForm({
-          title: "",
-          description: "",
-          sku: "",
-          retailPrice: "0",
-          optPrice: "0",
-          quantity: "0",
-          subfolder: "",
-          categoryId: "",
-        });
-        setFiles([]);
-        setFilePreviews([]);
-        setAttributes([{ key: "", value: "" }]);
-        setMainImageIndex(null);
-      }
-    } catch (err) {
-      console.error("Ошибка:", err);
-      if (err.response?.data?.detail) {
-        setMessage(`❌ ${err.response.data.detail}`);
-      } else {
-        setMessage("❌ Ошибка при сохранении");
-      }
+      setMessage("✅ Изменения сохранены!");
+    } catch (error) {
+      console.error(error);
+      setMessage("❌ Ошибка при сохранении товара");
     }
+  };
+
+  const handleDeleteImage = async (imageId: string) => {
+    await deleteImage(imageId);
+    setExistingImages((prev) => prev.filter((img) => img.id !== imageId));
+  };
+
+  const handleSetMainImage = async (imageId: string) => {
+    await setMainImageApi(imageId);
+    setExistingImages((prev) =>
+      prev.map((img) => ({ ...img, is_main: img.id === imageId }))
+    );
   };
 
   const handleDeleteProduct = async () => {
-    if (!productId || !window.confirm("Удалить товар?")) return;
-    try {
-      await deleteProduct(productId);
-      navigate("/products");
-    } catch {
-      setMessage("❌ Не удалось удалить товар");
-    }
+    if (!productId) return;
+    if (!confirm("Удалить товар?")) return;
+    await deleteProduct(productId);
+    navigate("/products");
   };
 
-  const handleDeleteImage = async id => {
-    try {
-      await deleteImage(id);
-      setExistingImages(prev => prev.filter(i => i.id !== id));
-    } catch {
-      setMessage("❌ Не удалось удалить изображение");
-    }
-  };
-
-  const handleSetMainImage = async id => {
-    try {
-      await setMainImageApi(id);
-      setExistingImages(prev =>
-        prev.map(img => ({ ...img, is_main: img.id === id }))
-      );
-      setMessage("✅ Главное изображение обновлено");
-    } catch {
-      setMessage("❌ Не удалось установить главное изображение");
-    }
-  };
-
-  if (loading) return <p>Загрузка...</p>;
+  if (loading) return <p style={{ padding: "2rem" }}>Загрузка...</p>;
 
   return (
-    <div>
+    <div style={{ padding: "2rem" }}>
       <h2>{productId ? "Редактировать продукт" : "Добавить продукт"}</h2>
-      <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "0.5rem", maxWidth: "600px" }}>
-        <label>Название</label>
-        <input type="text" value={form.title} onChange={e => updateField("title", e.target.value)} required />
+      <form onSubmit={handleSubmit}>
+        <label>Название:</label><br />
+        <input value={title} onChange={(e) => setTitle(e.target.value)} /><br />
 
-        <label>Описание</label>
-        <textarea value={form.description} onChange={e => updateField("description", e.target.value)} />
+        <label>Описание:</label><br />
+        <textarea value={description} onChange={(e) => setDescription(e.target.value)} /><br />
 
-        <label>Артикул (SKU)</label>
-        <input type="text" value={form.sku} onChange={e => updateField("sku", e.target.value)} required />
+        <label>Розничная цена:</label><br />
+        <input value={retailPrice} onChange={(e) => setRetailPrice(normalizeNumberInput(e.target.value))} /><br />
 
-        <label>Розничная цена</label>
-        <input type="text" value={form.retailPrice} onChange={e => updateField("retailPrice", e.target.value.replace(/\D/g, ''))} />
+        <label>Оптовая цена:</label><br />
+        <input value={optPrice} onChange={(e) => setOptPrice(normalizeNumberInput(e.target.value))} /><br />
 
-        <label>Оптовая цена</label>
-        <input type="text" value={form.optPrice} onChange={e => updateField("optPrice", e.target.value.replace(/\D/g, ''))} />
+        <label>Количество:</label><br />
+        <input value={quantity} onChange={(e) => setQuantity(normalizeNumberInput(e.target.value))} /><br />
 
-        <label>Количество</label>
-        <input type="text" value={form.quantity} onChange={e => updateField("quantity", e.target.value.replace(/\D/g, ''))} />
-
-        <label>Путь к папке фото</label>
-        <input
-          type="text"
-          placeholder="например: phones/iphone5"
-          value={form.subfolder}
-          onChange={e => updateField("subfolder", e.target.value)}
-        />
-
-        <label>Категория</label>
-        <select value={form.categoryId} onChange={e => updateField("categoryId", e.target.value)} required>
-          <option value="">— выбрать категорию —</option>
-          {categories.map(cat => (
+        <label>Категория:</label><br />
+        <select value={categoryId ?? ""} onChange={(e) => setCategoryId(Number(e.target.value))}>
+          <option value="">-- выберите категорию --</option>
+          {categories.map((cat) => (
             <option key={cat.id} value={cat.id}>{cat.name}</option>
           ))}
-        </select>
+        </select><br />
 
-        <label>Характеристики</label>
-        {attributes.map((attr, i) => (
-          <div key={i} style={{ display: "flex", gap: "0.5rem" }}>
-            <select
-              value={attr.key}
-              onChange={e => handleAttributeChange(i, "key", e.target.value)}
-              required
-            >
-              <option value="">— выбрать характеристику —</option>
-              {attributesOptions.map(opt => (
-                <option key={opt.id} value={opt.id}>{opt.name}</option>
+        <label>Подпапка:</label><br />
+        <input value={subfolder} onChange={(e) => setSubfolder(e.target.value)} /><br />
+
+        <label>Атрибуты:</label><br />
+        {selectedAttributes.map((attr, index) => (
+          <div key={index}>
+            <select value={attr.attribute_id} onChange={(e) => handleAttrChange(index, "attribute_id", e.target.value)}>
+              <option value="">-- выбрать --</option>
+              {attributes.map((a) => (
+                <option key={a.id} value={a.id}>
+                  {a.name.replace(/^meta_/, "")}
+                </option>
               ))}
             </select>
             <input
-              type="text"
               value={attr.value}
-              onChange={e => handleAttributeChange(i, "value", e.target.value)}
-              placeholder="Значение"
-              required
+              onChange={(e) => handleAttrChange(index, "value", e.target.value)}
             />
-            {attributes.length > 1 && (
-              <button type="button" onClick={() => setAttributes(attributes.filter((_, j) => j !== i))}>✕</button>
-            )}
+            <button type="button" onClick={() => handleRemoveAttr(index)}>Удалить</button>
           </div>
         ))}
-        <button type="button" onClick={() => setAttributes([...attributes, { key: "", value: "" }])}>+ Добавить</button>
+        <button type="button" onClick={handleAddAttribute}>Добавить характеристику</button><br />
 
-        <label>Загрузить изображения</label>
-        <input type="file" multiple accept="image/*" onChange={handleFileChange} />
+        <label>Загрузить изображения:</label><br />
+        <input type="file" accept="image/*" multiple onChange={handleFileChange} /><br />
 
         {filePreviews.length > 0 && (
-          <div style={{ display: "flex", flexWrap: "wrap", gap: "1rem", marginTop: "1rem" }}>
-            {filePreviews.map((src, i) => (
-              <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-                <img src={src} alt="" style={{ width: "100px", height: "100px", objectFit: "cover", borderRadius: "4px" }} />
-                <button type="button" onClick={() => setMainImageIndex(i)}>
-                  {mainImageIndex === i ? "Главное" : "Сделать главной"}
-                </button>
-              </div>
-            ))}
+          <div>
+            <p>Новые изображения:</p>
+            <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
+              {filePreviews.map((src, index) => (
+                <div key={index}>
+                  <img src={src} width={100} height={100} />
+                  <input
+                    type="radio"
+                    checked={mainImageIndex === index}
+                    onChange={() => setMainImageIndex(index)}
+                  />
+                  <label>Главное</label>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
         {existingImages.length > 0 && (
-          <div style={{ display: "flex", flexWrap: "wrap", gap: "1rem", marginTop: "1rem" }}>
-            {existingImages.map(img => (
-              <div key={img.id} style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-                <img src={img.image_path.startsWith("http") ? img.image_path : `/media/${img.image_path}`} alt="" style={{ width: "100px", height: "100px", objectFit: "cover", borderRadius: "4px" }} />
-                <button type="button" onClick={() => handleSetMainImage(img.id)}>Сделать главной</button>
-                <button type="button" onClick={() => handleDeleteImage(img.id)}>Удалить</button>
-              </div>
-            ))}
+          <div>
+            <p>Загруженные изображения:</p>
+            <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
+              {existingImages.map((img) => (
+                <div key={img.id}>
+                  <img src={getAbsoluteImageUrl(img.image_path || img.url)} width={100} height={100} />
+                  {img.is_main && <p><strong>Главное</strong></p>}
+                  <button type="button" onClick={() => handleSetMainImage(img.id)}>Сделать главным</button>
+                  <button type="button" onClick={() => handleDeleteImage(img.id)}>Удалить</button>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
-        <div>
-          <button type="submit">{productId ? "Сохранить" : "Создать"}</button>
-          {productId && (
-            <button type="button" onClick={handleDeleteProduct}>Удалить</button>
-          )}
-        </div>
-
-        {message && <p>{message}</p>}
+        <br />
+        <button type="submit">{productId ? "Сохранить" : "Создать"}</button>{" "}
+        {productId && (
+          <button type="button" onClick={handleDeleteProduct} style={{ backgroundColor: "red", color: "white" }}>
+            Удалить товар
+          </button>
+        )}
       </form>
+      {message && <p>{message}</p>}
     </div>
   );
 }

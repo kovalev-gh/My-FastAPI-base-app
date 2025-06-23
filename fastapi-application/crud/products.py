@@ -141,6 +141,18 @@ async def update_product(session: AsyncSession, product_id: int, update_data: di
 
     await session.commit()
     await session.refresh(product)
+
+    # Перезагрузить продукт с жадной загрузкой атрибутов, чтобы избежать ошибок ленивой загрузки
+    stmt = (
+        select(Product)
+        .options(
+            selectinload(Product.attributes).selectinload(ProductAttributeValue.attribute)
+        )
+        .where(Product.id == product_id)
+    )
+    result = await session.execute(stmt)
+    product = result.scalar_one()
+
     return product
 
 
