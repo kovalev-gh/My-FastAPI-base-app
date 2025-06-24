@@ -1,3 +1,4 @@
+// ProductForm.tsx
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
@@ -22,10 +23,9 @@ export default function ProductForm() {
   const [retailPrice, setRetailPrice] = useState("0");
   const [optPrice, setOptPrice] = useState("0");
   const [quantity, setQuantity] = useState("0");
-  const [subfolder, setSubfolder] = useState("");
+  const [subfolder, setSubfolder] = useState("products/phones/iphone15");
   const [categoryId, setCategoryId] = useState<number | null>(null);
   const [categories, setCategories] = useState<{ id: number; name: string }[]>([]);
-
   const [attributes, setAttributes] = useState<any[]>([]);
   const [selectedAttributes, setSelectedAttributes] = useState<any[]>([]);
 
@@ -48,24 +48,22 @@ export default function ProductForm() {
       try {
         setLoading(true);
         const { data } = await getProductById(productId);
-
         setTitle(data.title ?? "");
         setDescription(data.description ?? "");
         setRetailPrice(data.retail_price?.toString() ?? "0");
         setOptPrice(data.opt_price?.toString() ?? "0");
         setQuantity(data.quantity?.toString() ?? "0");
-        setSubfolder(data.path ?? "");
+        setSubfolder(data.path ?? "products/phones/iphone15");
         setCategoryId(data.category_id ?? null);
         setSelectedAttributes(data.attributes || []);
 
         const images = await getProductImages(productId);
-        if (Array.isArray(images)) {
-          setExistingImages(images);
-          const mainIndex = images.findIndex((img: any) => img.is_main);
-          setMainImageIndex(mainIndex >= 0 ? mainIndex : null);
-        }
+        console.log("📷 Полученные изображения:", images);
+        setExistingImages(images);
+        const mainIdx = images.findIndex((img: any) => img.is_main);
+        setMainImageIndex(mainIdx >= 0 ? mainIdx : null);
       } catch (err) {
-        console.error("Ошибка загрузки товара", err);
+        console.error("❌ Ошибка загрузки товара", err);
         setMessage("❌ Не удалось загрузить товар.");
       } finally {
         setLoading(false);
@@ -75,17 +73,24 @@ export default function ProductForm() {
     fetchProduct();
   }, [productId]);
 
-  const normalizeNumberInput = (value: string) => {
-    return value.replace(/^0+(?!$)/, "").replace(/\D/g, "") || "0";
-  };
+  const normalizeNumberInput = (value: string) =>
+    value.replace(/^0+(?!$)/, "").replace(/\D/g, "") || "0";
 
-  const getAbsoluteImageUrl = (url: string): string => {
-    if (url.startsWith("http")) return url;
-    const mediaIndex = url.indexOf("media/");
-    if (mediaIndex !== -1) {
-      return "/" + url.slice(mediaIndex);
+  const getImageUrl = (img: any): string => {
+    if (!img) return "";
+
+    let path = img.image_path || img.url || "";
+
+    // Убираем префикс /api/v1 если он есть
+    path = path.replace(/^\/?api\/v1\/?/, "");
+
+    // Если путь уже начинается с /media, возвращаем как есть
+    if (path.startsWith("media/") || path.startsWith("/media/")) {
+      return path.startsWith("/") ? path : "/" + path;
     }
-    return `/media/${url.replace(/^\/+/, "")}`;
+
+    // Добавляем /media вручную
+    return `/media/${path.replace(/^\/+/, "")}`;
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -93,6 +98,7 @@ export default function ProductForm() {
     setFiles(selected);
     setFilePreviews(selected.map((file) => URL.createObjectURL(file)));
     setMainImageIndex(0);
+    console.log("🖼️ Новые файлы выбраны:", selected.map(f => f.name));
   };
 
   const handleAddAttribute = () => {
@@ -131,22 +137,28 @@ export default function ProductForm() {
         ? await updateProduct(productId, payload)
         : await createProduct(payload);
 
+      console.log("✅ Продукт сохранён:", product);
+
       if (files.length > 0 && subfolder) {
         const uploadedImageIds: string[] = [];
 
         for (const file of files) {
           const result = await uploadProductImage(product.id, file, subfolder);
           uploadedImageIds.push(result.image_id);
+          console.log("📤 Изображение загружено:", result.image_path || result.url);
         }
 
         if (mainImageIndex !== null && uploadedImageIds[mainImageIndex]) {
           await setMainImageApi(uploadedImageIds[mainImageIndex]);
+          console.log("⭐ Главное изображение установлено:", uploadedImageIds[mainImageIndex]);
         }
       }
 
+      const updatedImages = await getProductImages(product.id);
+      setExistingImages(updatedImages);
       setMessage("✅ Изменения сохранены!");
     } catch (error) {
-      console.error(error);
+      console.error("❌ Ошибка при сохранении товара", error);
       setMessage("❌ Ошибка при сохранении товара");
     }
   };
@@ -154,6 +166,7 @@ export default function ProductForm() {
   const handleDeleteImage = async (imageId: string) => {
     await deleteImage(imageId);
     setExistingImages((prev) => prev.filter((img) => img.id !== imageId));
+    console.log("🗑️ Изображение удалено:", imageId);
   };
 
   const handleSetMainImage = async (imageId: string) => {
@@ -161,6 +174,7 @@ export default function ProductForm() {
     setExistingImages((prev) =>
       prev.map((img) => ({ ...img, is_main: img.id === imageId }))
     );
+    console.log("⭐ Установлено как главное:", imageId);
   };
 
   const handleDeleteProduct = async () => {
@@ -199,7 +213,7 @@ export default function ProductForm() {
           ))}
         </select><br />
 
-        <label>Подпапка:</label><br />
+        <label>Подпапка (сохранение):</label><br />
         <input value={subfolder} onChange={(e) => setSubfolder(e.target.value)} /><br />
 
         <label>Атрибуты:</label><br />
@@ -208,15 +222,10 @@ export default function ProductForm() {
             <select value={attr.attribute_id} onChange={(e) => handleAttrChange(index, "attribute_id", e.target.value)}>
               <option value="">-- выбрать --</option>
               {attributes.map((a) => (
-                <option key={a.id} value={a.id}>
-                  {a.name.replace(/^meta_/, "")}
-                </option>
+                <option key={a.id} value={a.id}>{a.name.replace(/^meta_/, "")}</option>
               ))}
             </select>
-            <input
-              value={attr.value}
-              onChange={(e) => handleAttrChange(index, "value", e.target.value)}
-            />
+            <input value={attr.value} onChange={(e) => handleAttrChange(index, "value", e.target.value)} />
             <button type="button" onClick={() => handleRemoveAttr(index)}>Удалить</button>
           </div>
         ))}
@@ -250,7 +259,7 @@ export default function ProductForm() {
             <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
               {existingImages.map((img) => (
                 <div key={img.id}>
-                  <img src={getAbsoluteImageUrl(img.image_path || img.url)} width={100} height={100} />
+                  <img src={getImageUrl(img)} width={100} height={100} />
                   {img.is_main && <p><strong>Главное</strong></p>}
                   <button type="button" onClick={() => handleSetMainImage(img.id)}>Сделать главным</button>
                   <button type="button" onClick={() => handleDeleteImage(img.id)}>Удалить</button>
