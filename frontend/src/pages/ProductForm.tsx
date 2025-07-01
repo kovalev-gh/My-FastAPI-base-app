@@ -22,7 +22,7 @@ export default function ProductForm() {
   const [retailPrice, setRetailPrice] = useState("0");
   const [optPrice, setOptPrice] = useState("0");
   const [quantity, setQuantity] = useState("0");
-  const [subfolder, setSubfolder] = useState("products/phones/iphone15");
+  const [subfolder, setSubfolder] = useState("phones/iphone15"); // ✅ исправлено
   const [categoryId, setCategoryId] = useState<number | null>(null);
   const [categories, setCategories] = useState<{ id: number; name: string }[]>([]);
   const [attributes, setAttributes] = useState<any[]>([]);
@@ -52,7 +52,7 @@ export default function ProductForm() {
         setRetailPrice(data.retail_price?.toString() ?? "0");
         setOptPrice(data.opt_price?.toString() ?? "0");
         setQuantity(data.quantity?.toString() ?? "0");
-        setSubfolder(data.path ?? "products/phones/iphone15");
+        setSubfolder(data.path ?? "phones/iphone15"); // ✅ исправлено
         setCategoryId(data.category_id ?? null);
         setSelectedAttributes(data.attributes || []);
 
@@ -140,7 +140,6 @@ export default function ProductForm() {
         }
       }
 
-      // ✅ Исправлено: проверяем тип перед .startsWith
       if (typeof mainImageId === "string" && mainImageId.startsWith("new-")) {
         const index = parseInt(mainImageId.replace("new-", ""), 10);
         const newImageId = uploadedImageIds[index];
@@ -265,8 +264,7 @@ export default function ProductForm() {
                     {img.id === mainImageId && <p style={{ fontSize: "0.75rem", color: "green" }}><strong>Главное</strong></p>}
                     <button type="button" onClick={() => handleSetMainImage(img.id)} style={{ fontSize: "0.75rem", marginBottom: "0.2rem" }}>
                       Сделать главным
-                    </button>
-                    <br />
+                    </button><br />
                     {img.isNew ? (
                       <button type="button" onClick={() => handleDeletePreview(img.index)} style={{ fontSize: "0.75rem", color: "red" }}>
                         Удалить
