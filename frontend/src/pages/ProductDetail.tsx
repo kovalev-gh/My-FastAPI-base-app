@@ -3,10 +3,12 @@ import { useNavigate, useParams } from "react-router-dom";
 import { getProductById, getProductImages } from "../api/products";
 import { getAllAttributes } from "../api/attributes";
 import { getCategories } from "../api/categories";
+import { useAuth } from "../context/AuthContext";
 
 export default function ProductDetail() {
   const { productId } = useParams<{ productId: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   const [product, setProduct] = useState<any | null>(null);
   const [images, setImages] = useState<any[]>([]);
@@ -15,7 +17,6 @@ export default function ProductDetail() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    console.log("ProductDetail загружается");
     if (!productId) return;
 
     const fetchData = async () => {
@@ -81,32 +82,20 @@ export default function ProductDetail() {
     <div style={{ padding: "2rem" }}>
       <h2>{product.title}</h2>
 
-      <p>
-        <strong>Описание:</strong> {product.description}
-      </p>
-      <p>
-        <strong>Розничная цена:</strong> {product.retail_price} ₽
-      </p>
-      <p>
-        <strong>Оптовая цена:</strong> {product.opt_price} ₽
-      </p>
-      <p>
-        <strong>Количество:</strong> {product.quantity}
-      </p>
-      <p>
-        <strong>Категория:</strong> {getCategoryName(product.category_id)}
-      </p>
+      <p><strong>Описание:</strong> {product.description}</p>
+      <p><strong>Розничная цена:</strong> {product.retail_price} ₽</p>
+      {user?.is_superuser && (
+        <p><strong>Оптовая цена:</strong> {product.opt_price} ₽</p>
+      )}
+      <p><strong>Количество:</strong> {product.quantity}</p>
+      <p><strong>Категория:</strong> {getCategoryName(product.category_id)}</p>
 
-      <p>
-        <strong>Характеристики:</strong>
-      </p>
+      <p><strong>Характеристики:</strong></p>
       {renderAttributes()}
 
       {images.length > 0 && (
         <>
-          <p>
-            <strong>Изображения:</strong>
-          </p>
+          <p><strong>Изображения:</strong></p>
           <div style={{ display: "flex", gap: "1rem" }}>
             {images.map((img) => (
               <img
@@ -127,9 +116,11 @@ export default function ProductDetail() {
       )}
 
       <br />
-      <button onClick={() => navigate(`/admin/edit-product/${productId}`)}>
-        Редактировать
-      </button>{" "}
+      {user?.is_superuser && (
+        <button onClick={() => navigate(`/admin/edit-product/${productId}`)}>
+          Редактировать
+        </button>
+      )}{" "}
       <button onClick={() => navigate(-1)}>Назад</button>
     </div>
   );
