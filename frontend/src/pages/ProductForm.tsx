@@ -10,8 +10,7 @@ import {
   deleteImage,
   setMainImage as setMainImageApi,
 } from "../api/products";
-import { getCategories } from "../api/categories";
-import { getAllAttributes } from "../api/attributes";
+import { getCategories, getCategoryWithAttributes } from "../api/categories";
 
 export default function ProductForm() {
   const { productId } = useParams<{ productId: string }>();
@@ -37,7 +36,6 @@ export default function ProductForm() {
 
   useEffect(() => {
     getCategories().then(setCategories);
-    getAllAttributes().then((res) => setAttributes(res?.data || res));
   }, []);
 
   useEffect(() => {
@@ -70,6 +68,19 @@ export default function ProductForm() {
 
     fetchProduct();
   }, [productId]);
+
+  useEffect(() => {
+    if (!categoryId) {
+      setAttributes([]);
+      return;
+    }
+    getCategoryWithAttributes(categoryId)
+      .then((res) => setAttributes(res.attributes))
+      .catch((err) => {
+        console.error("Ошибка при получении атрибутов категории", err);
+        setAttributes([]);
+      });
+  }, [categoryId]);
 
   const normalizeNumberInput = (value: string) =>
     value.replace(/^0+(?!$)/, "").replace(/\D/g, "") || "0";
@@ -247,9 +258,7 @@ export default function ProductForm() {
                 <option
                   key={a.id}
                   value={a.id}
-                  disabled={
-                    usedAttributeIds.includes(a.id) && a.id !== attr.attribute_id
-                  }
+                  disabled={usedAttributeIds.includes(a.id) && a.id !== attr.attribute_id}
                 >
                   {a.name.replace(/^meta_/, "")}
                 </option>
