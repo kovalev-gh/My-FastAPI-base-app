@@ -26,12 +26,25 @@ const CategoryAttributeManager: React.FC = () => {
 
   useEffect(() => {
     getCategories().then(setCategories);
-    getAllAttributes().then((res) => setAllAttributes(res.data));
+
+    getAllAttributes().then((res) => {
+      console.log("Получены все атрибуты:", res);
+      const data = res?.data ?? res;
+      if (Array.isArray(data)) {
+        setAllAttributes(data);
+      } else {
+        console.error("Неверный формат ответа getAllAttributes:", res);
+        setAllAttributes([]);
+      }
+    });
   }, []);
 
   useEffect(() => {
     if (selectedCategoryId !== null) {
-      getCategoryAttributes(selectedCategoryId).then((res) => setAttributes(res.data));
+      getCategoryAttributes(selectedCategoryId).then((res) => {
+        console.log("Атрибуты категории:", res.data);
+        setAttributes(res.data);
+      });
     }
   }, [selectedCategoryId]);
 
@@ -40,23 +53,42 @@ const CategoryAttributeManager: React.FC = () => {
     if (!newAttrName.trim() || selectedCategoryId === null) return;
 
     try {
-      // Ищем атрибут с таким именем без префикса meta_
+      if (!Array.isArray(allAttributes)) {
+        setError("Атрибуты не загружены.");
+        return;
+      }
+
+      const trimmedName = newAttrName.trim();
       let attr = allAttributes.find((a) => {
         const displayName = a.name.startsWith("meta_") ? a.name.slice(5) : a.name;
-        return displayName === newAttrName.trim();
+        return displayName === trimmedName;
       });
 
       if (!attr) {
-        // Создаем новый атрибут с префиксом meta_
+        console.log("Атрибут не найден, создаём новый...");
+
         const res = await createAttribute({
-          name: "meta_" + newAttrName.trim(),
+          name: "meta_" + trimmedName,
           unit: newAttrUnit.trim() || undefined,
         });
-        attr = res.data;
-        setAllAttributes([...allAttributes, attr]);
+
+        console.log("Ответ от createAttribute:", res);
+
+        attr = res?.data ?? res;
+
+        if (!attr || !attr.id) {
+          console.error("Ошибка: createAttribute не вернул объект с id:", attr);
+          setError("Ошибка при создании атрибута.");
+          return;
+        }
+
+        setAllAttributes((prev) => [...prev, attr]);
+      } else {
+        console.log("Найден существующий атрибут:", attr);
       }
 
-      // Привязываем атрибут к выбранной категории
+      console.log(`Привязываем атрибут ID=${attr.id} к категории ID=${selectedCategoryId}`);
+
       await bindAttributeToCategory(selectedCategoryId, attr.id);
 
       const updated = await getCategoryAttributes(selectedCategoryId);
@@ -65,6 +97,7 @@ const CategoryAttributeManager: React.FC = () => {
       setNewAttrUnit("");
     } catch (err: any) {
       const detail = err.response?.data?.detail || "";
+      console.error("Ошибка при добавлении атрибута:", err);
 
       if (detail === "ATTRIBUTE_NAME_CONFLICT") {
         setError("Атрибут с таким именем уже существует.");
@@ -74,7 +107,6 @@ const CategoryAttributeManager: React.FC = () => {
         setError("Атрибут уже привязан к этой категории.");
       } else {
         setError("Произошла неизвестная ошибка.");
-        console.error("Ошибка при добавлении атрибута:", err);
       }
     }
   };
