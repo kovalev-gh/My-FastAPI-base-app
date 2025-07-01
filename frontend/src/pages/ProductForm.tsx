@@ -22,7 +22,7 @@ export default function ProductForm() {
   const [retailPrice, setRetailPrice] = useState("0");
   const [optPrice, setOptPrice] = useState("0");
   const [quantity, setQuantity] = useState("0");
-  const [subfolder, setSubfolder] = useState("phones/iphone15"); // ✅ исправлено
+  const [subfolder, setSubfolder] = useState("phones/iphone15");
   const [categoryId, setCategoryId] = useState<number | null>(null);
   const [categories, setCategories] = useState<{ id: number; name: string }[]>([]);
   const [attributes, setAttributes] = useState<any[]>([]);
@@ -52,7 +52,7 @@ export default function ProductForm() {
         setRetailPrice(data.retail_price?.toString() ?? "0");
         setOptPrice(data.opt_price?.toString() ?? "0");
         setQuantity(data.quantity?.toString() ?? "0");
-        setSubfolder(data.path ?? "phones/iphone15"); // ✅ исправлено
+        setSubfolder(data.path ?? "phones/iphone15");
         setCategoryId(data.category_id ?? null);
         setSelectedAttributes(data.attributes || []);
 
@@ -199,6 +199,10 @@ export default function ProductForm() {
     a.id === mainImageId ? -1 : b.id === mainImageId ? 1 : 0
   );
 
+  const usedAttributeIds = selectedAttributes
+    .map((a) => a.attribute_id)
+    .filter((id) => id !== "");
+
   if (loading) return <p style={{ padding: "2rem" }}>Загрузка...</p>;
 
   return (
@@ -234,13 +238,27 @@ export default function ProductForm() {
         <label>Атрибуты:</label><br />
         {selectedAttributes.map((attr, index) => (
           <div key={index}>
-            <select value={attr.attribute_id} onChange={(e) => handleAttrChange(index, "attribute_id", e.target.value)}>
+            <select
+              value={attr.attribute_id}
+              onChange={(e) => handleAttrChange(index, "attribute_id", e.target.value)}
+            >
               <option value="">-- выбрать --</option>
               {attributes.map((a) => (
-                <option key={a.id} value={a.id}>{a.name.replace(/^meta_/, "")}</option>
+                <option
+                  key={a.id}
+                  value={a.id}
+                  disabled={
+                    usedAttributeIds.includes(a.id) && a.id !== attr.attribute_id
+                  }
+                >
+                  {a.name.replace(/^meta_/, "")}
+                </option>
               ))}
             </select>
-            <input value={attr.value} onChange={(e) => handleAttrChange(index, "value", e.target.value)} />
+            <input
+              value={attr.value}
+              onChange={(e) => handleAttrChange(index, "value", e.target.value)}
+            />
             <button type="button" onClick={() => handleRemoveAttr(index)}>Удалить</button>
           </div>
         ))}

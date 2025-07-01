@@ -45,7 +45,7 @@ class ProductAttributeValue(Base):
 
     # 🔁 связь с товаром и определением
     product: Mapped["Product"] = relationship(back_populates="attributes")
-    attribute: Mapped["ProductAttributeDefinition"] = relationship()
+    attribute: Mapped["ProductAttributeDefinition"] = relationship(lazy="selectin")
 
     @property
     def name(self) -> str:
