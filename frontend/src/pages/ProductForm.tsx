@@ -86,9 +86,13 @@ export default function ProductForm() {
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFiles = Array.from(e.target.files ?? []);
-    setFiles(selectedFiles);
-    setFilePreviews(selectedFiles.map((file) => URL.createObjectURL(file)));
-    if (selectedFiles.length > 0) setMainImageId("new-0");
+    setFiles((prev) => [...prev, ...selectedFiles]);
+    setFilePreviews((prev) => [...prev, ...selectedFiles.map((file) => URL.createObjectURL(file))]);
+  };
+
+  const handleDeletePreview = (index: number) => {
+    setFiles((prev) => prev.filter((_, i) => i !== index));
+    setFilePreviews((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleAddAttribute = () => {
@@ -129,7 +133,6 @@ export default function ProductForm() {
 
       let uploadedImageIds: string[] = [];
 
-      // Upload new files
       if (files.length > 0 && subfolder) {
         for (const file of files) {
           const result = await uploadProductImage(product.id, file, subfolder);
@@ -137,7 +140,7 @@ export default function ProductForm() {
         }
       }
 
-      // Set main image
+      // ✅ Исправлено: проверяем тип перед .startsWith
       if (typeof mainImageId === "string" && mainImageId.startsWith("new-")) {
         const index = parseInt(mainImageId.replace("new-", ""), 10);
         const newImageId = uploadedImageIds[index];
@@ -184,6 +187,7 @@ export default function ProductForm() {
       id: `new-${index}`,
       src,
       isNew: true,
+      index,
     })),
     ...existingImages.map((img) => ({
       id: img.id,
@@ -263,7 +267,11 @@ export default function ProductForm() {
                       Сделать главным
                     </button>
                     <br />
-                    {!img.isNew && (
+                    {img.isNew ? (
+                      <button type="button" onClick={() => handleDeletePreview(img.index)} style={{ fontSize: "0.75rem", color: "red" }}>
+                        Удалить
+                      </button>
+                    ) : (
                       <button type="button" onClick={() => handleDeleteImage(img.id)} style={{ fontSize: "0.75rem", color: "red" }}>
                         Удалить
                       </button>
