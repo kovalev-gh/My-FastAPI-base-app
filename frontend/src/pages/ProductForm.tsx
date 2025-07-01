@@ -31,7 +31,7 @@ export default function ProductForm() {
 
   const [files, setFiles] = useState<File[]>([]);
   const [filePreviews, setFilePreviews] = useState<string[]>([]);
-  const [mainImageIndex, setMainImageIndex] = useState<number | null>(0);
+  const [mainImageIndex, setMainImageIndex] = useState<number | null>(null);
   const [existingImages, setExistingImages] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
@@ -58,7 +58,6 @@ export default function ProductForm() {
         setSelectedAttributes(data.attributes || []);
 
         const images = await getProductImages(productId);
-        console.log("📷 Полученные изображения:", images);
         setExistingImages(images);
         const mainIdx = images.findIndex((img: any) => img.is_main);
         setMainImageIndex(mainIdx >= 0 ? mainIdx : null);
@@ -78,27 +77,19 @@ export default function ProductForm() {
 
   const getImageUrl = (img: any): string => {
     if (!img) return "";
-
     let path = img.image_path || img.url || "";
-
-    // Убираем префикс /api/v1 если он есть
     path = path.replace(/^\/?api\/v1\/?/, "");
-
-    // Если путь уже начинается с /media, возвращаем как есть
     if (path.startsWith("media/") || path.startsWith("/media/")) {
       return path.startsWith("/") ? path : "/" + path;
     }
-
-    // Добавляем /media вручную
     return `/media/${path.replace(/^\/+/, "")}`;
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selected = Array.from(e.target.files ?? []);
-    setFiles(selected);
-    setFilePreviews(selected.map((file) => URL.createObjectURL(file)));
+    const selectedFiles = Array.from(e.target.files ?? []);
+    setFiles(selectedFiles);
+    setFilePreviews(selectedFiles.map((file) => URL.createObjectURL(file)));
     setMainImageIndex(0);
-    console.log("🖼️ Новые файлы выбраны:", selected.map(f => f.name));
   };
 
   const handleAddAttribute = () => {
@@ -137,25 +128,23 @@ export default function ProductForm() {
         ? await updateProduct(productId, payload)
         : await createProduct(payload);
 
-      console.log("✅ Продукт сохранён:", product);
-
       if (files.length > 0 && subfolder) {
         const uploadedImageIds: string[] = [];
 
         for (const file of files) {
           const result = await uploadProductImage(product.id, file, subfolder);
           uploadedImageIds.push(result.image_id);
-          console.log("📤 Изображение загружено:", result.image_path || result.url);
         }
 
         if (mainImageIndex !== null && uploadedImageIds[mainImageIndex]) {
           await setMainImageApi(uploadedImageIds[mainImageIndex]);
-          console.log("⭐ Главное изображение установлено:", uploadedImageIds[mainImageIndex]);
         }
       }
 
       const updatedImages = await getProductImages(product.id);
       setExistingImages(updatedImages);
+      setFiles([]);
+      setFilePreviews([]);
       setMessage("✅ Изменения сохранены!");
     } catch (error) {
       console.error("❌ Ошибка при сохранении товара", error);
@@ -166,7 +155,6 @@ export default function ProductForm() {
   const handleDeleteImage = async (imageId: string) => {
     await deleteImage(imageId);
     setExistingImages((prev) => prev.filter((img) => img.id !== imageId));
-    console.log("🗑️ Изображение удалено:", imageId);
   };
 
   const handleSetMainImage = async (imageId: string) => {
@@ -174,7 +162,6 @@ export default function ProductForm() {
     setExistingImages((prev) =>
       prev.map((img) => ({ ...img, is_main: img.id === imageId }))
     );
-    console.log("⭐ Установлено как главное:", imageId);
   };
 
   const handleDeleteProduct = async () => {
@@ -234,35 +221,44 @@ export default function ProductForm() {
         <label>Загрузить изображения:</label><br />
         <input type="file" accept="image/*" multiple onChange={handleFileChange} /><br />
 
-        {filePreviews.length > 0 && (
+        {(filePreviews.length > 0 || existingImages.length > 0) && (
           <div>
-            <p>Новые изображения:</p>
-            <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
+            <p>Изображения:</p>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "1rem" }}>
               {filePreviews.map((src, index) => (
-                <div key={index}>
-                  <img src={src} width={100} height={100} />
-                  <input
-                    type="radio"
-                    checked={mainImageIndex === index}
-                    onChange={() => setMainImageIndex(index)}
-                  />
-                  <label>Главное</label>
+                <div key={`new-${index}`} style={{
+                  width: "120px", textAlign: "center",
+                  border: mainImageIndex === index ? "2px solid green" : "1px solid #ccc",
+                  padding: "0.5rem", borderRadius: "8px"
+                }}>
+                  <img src={src} style={{ width: "100%", height: "100px", objectFit: "cover", borderRadius: "4px" }} />
+                  <div style={{ marginTop: "0.5rem" }}>
+                    <input
+                      type="radio"
+                      name="newMain"
+                      checked={mainImageIndex === index}
+                      onChange={() => setMainImageIndex(index)}
+                    />
+                    <label style={{ fontSize: "0.8rem" }}>Главное</label>
+                  </div>
                 </div>
               ))}
-            </div>
-          </div>
-        )}
 
-        {existingImages.length > 0 && (
-          <div>
-            <p>Загруженные изображения:</p>
-            <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
               {existingImages.map((img) => (
-                <div key={img.id}>
-                  <img src={getImageUrl(img)} width={100} height={100} />
-                  {img.is_main && <p><strong>Главное</strong></p>}
-                  <button type="button" onClick={() => handleSetMainImage(img.id)}>Сделать главным</button>
-                  <button type="button" onClick={() => handleDeleteImage(img.id)}>Удалить</button>
+                <div key={img.id} style={{
+                  width: "120px", textAlign: "center",
+                  border: img.is_main ? "2px solid green" : "1px solid #ccc",
+                  padding: "0.5rem", borderRadius: "8px"
+                }}>
+                  <img src={getImageUrl(img)} style={{ width: "100%", height: "100px", objectFit: "cover", borderRadius: "4px" }} />
+                  {img.is_main && <p style={{ fontSize: "0.75rem", color: "green" }}><strong>Главное</strong></p>}
+                  <button type="button" onClick={() => handleSetMainImage(img.id)} style={{ fontSize: "0.75rem", margin: "2px 0" }}>
+                    Сделать главным
+                  </button>
+                  <br />
+                  <button type="button" onClick={() => handleDeleteImage(img.id)} style={{ fontSize: "0.75rem", color: "red" }}>
+                    Удалить
+                  </button>
                 </div>
               ))}
             </div>
