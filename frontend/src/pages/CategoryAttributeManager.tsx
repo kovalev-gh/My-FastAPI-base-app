@@ -177,3 +177,4 @@ const CategoryAttributeManager: React.FC = () => {
 };
 
 export default CategoryAttributeManager;
+
