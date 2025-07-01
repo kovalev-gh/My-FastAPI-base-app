@@ -1,4 +1,3 @@
-// ProductForm.tsx
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
@@ -31,7 +30,7 @@ export default function ProductForm() {
 
   const [files, setFiles] = useState<File[]>([]);
   const [filePreviews, setFilePreviews] = useState<string[]>([]);
-  const [mainImageIndex, setMainImageIndex] = useState<number | null>(null);
+  const [mainImageId, setMainImageId] = useState<string | null>(null);
   const [existingImages, setExistingImages] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
@@ -59,8 +58,8 @@ export default function ProductForm() {
 
         const images = await getProductImages(productId);
         setExistingImages(images);
-        const mainIdx = images.findIndex((img: any) => img.is_main);
-        setMainImageIndex(mainIdx >= 0 ? mainIdx : null);
+        const main = images.find((img: any) => img.is_main);
+        if (main) setMainImageId(main.id);
       } catch (err) {
         console.error("❌ Ошибка загрузки товара", err);
         setMessage("❌ Не удалось загрузить товар.");
@@ -89,7 +88,7 @@ export default function ProductForm() {
     const selectedFiles = Array.from(e.target.files ?? []);
     setFiles(selectedFiles);
     setFilePreviews(selectedFiles.map((file) => URL.createObjectURL(file)));
-    setMainImageIndex(0);
+    if (selectedFiles.length > 0) setMainImageId("new-0");
   };
 
   const handleAddAttribute = () => {
@@ -128,21 +127,32 @@ export default function ProductForm() {
         ? await updateProduct(productId, payload)
         : await createProduct(payload);
 
-      if (files.length > 0 && subfolder) {
-        const uploadedImageIds: string[] = [];
+      let uploadedImageIds: string[] = [];
 
+      // Upload new files
+      if (files.length > 0 && subfolder) {
         for (const file of files) {
           const result = await uploadProductImage(product.id, file, subfolder);
           uploadedImageIds.push(result.image_id);
         }
+      }
 
-        if (mainImageIndex !== null && uploadedImageIds[mainImageIndex]) {
-          await setMainImageApi(uploadedImageIds[mainImageIndex]);
+      // Set main image
+      if (typeof mainImageId === "string" && mainImageId.startsWith("new-")) {
+        const index = parseInt(mainImageId.replace("new-", ""), 10);
+        const newImageId = uploadedImageIds[index];
+        if (newImageId) {
+          await setMainImageApi(newImageId);
         }
+      } else if (typeof mainImageId === "string") {
+        await setMainImageApi(mainImageId);
       }
 
       const updatedImages = await getProductImages(product.id);
       setExistingImages(updatedImages);
+      const newMain = updatedImages.find((img) => img.is_main);
+      if (newMain) setMainImageId(newMain.id);
+
       setFiles([]);
       setFilePreviews([]);
       setMessage("✅ Изменения сохранены!");
@@ -155,13 +165,11 @@ export default function ProductForm() {
   const handleDeleteImage = async (imageId: string) => {
     await deleteImage(imageId);
     setExistingImages((prev) => prev.filter((img) => img.id !== imageId));
+    if (mainImageId === imageId) setMainImageId(null);
   };
 
-  const handleSetMainImage = async (imageId: string) => {
-    await setMainImageApi(imageId);
-    setExistingImages((prev) =>
-      prev.map((img) => ({ ...img, is_main: img.id === imageId }))
-    );
+  const handleSetMainImage = (id: string) => {
+    setMainImageId(id);
   };
 
   const handleDeleteProduct = async () => {
@@ -170,6 +178,23 @@ export default function ProductForm() {
     await deleteProduct(productId);
     navigate("/products");
   };
+
+  const allImages = [
+    ...filePreviews.map((src, index) => ({
+      id: `new-${index}`,
+      src,
+      isNew: true,
+    })),
+    ...existingImages.map((img) => ({
+      id: img.id,
+      src: getImageUrl(img),
+      isNew: false,
+    })),
+  ];
+
+  const sortedImages = allImages.sort((a, b) =>
+    a.id === mainImageId ? -1 : b.id === mainImageId ? 1 : 0
+  );
 
   if (loading) return <p style={{ padding: "2rem" }}>Загрузка...</p>;
 
@@ -221,44 +246,29 @@ export default function ProductForm() {
         <label>Загрузить изображения:</label><br />
         <input type="file" accept="image/*" multiple onChange={handleFileChange} /><br />
 
-        {(filePreviews.length > 0 || existingImages.length > 0) && (
+        {sortedImages.length > 0 && (
           <div>
             <p>Изображения:</p>
             <div style={{ display: "flex", flexWrap: "wrap", gap: "1rem" }}>
-              {filePreviews.map((src, index) => (
-                <div key={`new-${index}`} style={{
-                  width: "120px", textAlign: "center",
-                  border: mainImageIndex === index ? "2px solid green" : "1px solid #ccc",
-                  padding: "0.5rem", borderRadius: "8px"
-                }}>
-                  <img src={src} style={{ width: "100%", height: "100px", objectFit: "cover", borderRadius: "4px" }} />
-                  <div style={{ marginTop: "0.5rem" }}>
-                    <input
-                      type="radio"
-                      name="newMain"
-                      checked={mainImageIndex === index}
-                      onChange={() => setMainImageIndex(index)}
-                    />
-                    <label style={{ fontSize: "0.8rem" }}>Главное</label>
-                  </div>
-                </div>
-              ))}
-
-              {existingImages.map((img) => (
+              {sortedImages.map((img) => (
                 <div key={img.id} style={{
                   width: "120px", textAlign: "center",
-                  border: img.is_main ? "2px solid green" : "1px solid #ccc",
+                  border: img.id === mainImageId ? "2px solid green" : "1px solid #ccc",
                   padding: "0.5rem", borderRadius: "8px"
                 }}>
-                  <img src={getImageUrl(img)} style={{ width: "100%", height: "100px", objectFit: "cover", borderRadius: "4px" }} />
-                  {img.is_main && <p style={{ fontSize: "0.75rem", color: "green" }}><strong>Главное</strong></p>}
-                  <button type="button" onClick={() => handleSetMainImage(img.id)} style={{ fontSize: "0.75rem", margin: "2px 0" }}>
-                    Сделать главным
-                  </button>
-                  <br />
-                  <button type="button" onClick={() => handleDeleteImage(img.id)} style={{ fontSize: "0.75rem", color: "red" }}>
-                    Удалить
-                  </button>
+                  <img src={img.src} style={{ width: "100%", height: "100px", objectFit: "cover", borderRadius: "4px" }} />
+                  <div style={{ marginTop: "0.3rem" }}>
+                    {img.id === mainImageId && <p style={{ fontSize: "0.75rem", color: "green" }}><strong>Главное</strong></p>}
+                    <button type="button" onClick={() => handleSetMainImage(img.id)} style={{ fontSize: "0.75rem", marginBottom: "0.2rem" }}>
+                      Сделать главным
+                    </button>
+                    <br />
+                    {!img.isNew && (
+                      <button type="button" onClick={() => handleDeleteImage(img.id)} style={{ fontSize: "0.75rem", color: "red" }}>
+                        Удалить
+                      </button>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
