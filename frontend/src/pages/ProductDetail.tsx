@@ -1,40 +1,44 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { getProductById, getProductImages } from "../api/products";
+import { getAllAttributes } from "../api/attributes";
 import { getCategories } from "../api/categories";
 
 export default function ProductDetail() {
   const { productId } = useParams<{ productId: string }>();
   const navigate = useNavigate();
 
-  const [product, setProduct] = useState<any>(null);
-  const [categoryName, setCategoryName] = useState<string>("");
+  const [product, setProduct] = useState<any | null>(null);
   const [images, setImages] = useState<any[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
+  const [attributeDefs, setAttributeDefs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const loadData = async () => {
-      if (!productId) return;
+    console.log("ProductDetail загружается");
+    if (!productId) return;
 
+    const fetchData = async () => {
       try {
-        const [{ data: prod }, categories, imgs] = await Promise.all([
+        const [productRes, imageRes, categoryRes, attrRes] = await Promise.all([
           getProductById(productId),
-          getCategories(),
           getProductImages(productId),
+          getCategories(),
+          getAllAttributes(),
         ]);
 
-        setProduct(prod);
-        setImages(imgs);
-        const category = categories.find((cat) => cat.id === prod.category_id);
-        setCategoryName(category?.name || "");
+        setProduct(productRes.data);
+        setImages(imageRes);
+        setCategories(categoryRes);
+        setAttributeDefs(attrRes);
       } catch (err) {
-        console.error("❌ Ошибка при загрузке данных:", err);
+        console.error("Ошибка загрузки данных", err);
       } finally {
         setLoading(false);
       }
     };
 
-    loadData();
+    fetchData();
   }, [productId]);
 
   const getImageUrl = (img: any): string => {
@@ -47,52 +51,85 @@ export default function ProductDetail() {
     return `/media/${path.replace(/^\/+/, "")}`;
   };
 
+  const getCategoryName = (id: number) =>
+    categories.find((cat) => cat.id === id)?.name || "—";
+
+  const renderAttributes = () => {
+    if (!product?.attributes?.length) return <p>Нет характеристик</p>;
+
+    return (
+      <ul>
+        {product.attributes.map((attr: any, index: number) => {
+          const def = attributeDefs.find((d) => d.id === attr.attribute_id);
+          const name = def?.name?.replace(/^meta_/, "") || attr.name || "—";
+          const unit = def?.unit ? ` ${def.unit}` : "";
+          return (
+            <li key={index}>
+              {name}: {attr.value}
+              {unit}
+            </li>
+          );
+        })}
+      </ul>
+    );
+  };
+
   if (loading) return <p style={{ padding: "2rem" }}>Загрузка...</p>;
-  if (!product) return <p style={{ padding: "2rem" }}>Продукт не найден.</p>;
+  if (!product) return <p style={{ padding: "2rem" }}>Товар не найден</p>;
 
   return (
     <div style={{ padding: "2rem" }}>
       <h2>{product.title}</h2>
-      <p><strong>Описание:</strong> {product.description}</p>
-      <p><strong>Розничная цена:</strong> {product.retail_price} ₽</p>
-      <p><strong>Оптовая цена:</strong> {product.opt_price} ₽</p>
-      <p><strong>Количество:</strong> {product.quantity}</p>
-      <p><strong>Категория:</strong> {categoryName}</p>
 
-      <p><strong>Характеристики:</strong></p>
-      {product.attributes?.length > 0 ? (
-        <ul>
-          {product.attributes.map((attr: any, idx: number) => (
-            <li key={idx}>
-              {attr.name.replace(/^meta_/, "")}: {attr.value}
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p>Нет характеристик</p>
+      <p>
+        <strong>Описание:</strong> {product.description}
+      </p>
+      <p>
+        <strong>Розничная цена:</strong> {product.retail_price} ₽
+      </p>
+      <p>
+        <strong>Оптовая цена:</strong> {product.opt_price} ₽
+      </p>
+      <p>
+        <strong>Количество:</strong> {product.quantity}
+      </p>
+      <p>
+        <strong>Категория:</strong> {getCategoryName(product.category_id)}
+      </p>
+
+      <p>
+        <strong>Характеристики:</strong>
+      </p>
+      {renderAttributes()}
+
+      {images.length > 0 && (
+        <>
+          <p>
+            <strong>Изображения:</strong>
+          </p>
+          <div style={{ display: "flex", gap: "1rem" }}>
+            {images.map((img) => (
+              <img
+                key={img.id}
+                src={getImageUrl(img)}
+                alt="Product"
+                style={{
+                  width: "120px",
+                  height: "120px",
+                  objectFit: "cover",
+                  borderRadius: "8px",
+                  border: img.is_main ? "2px solid green" : "1px solid #ccc",
+                }}
+              />
+            ))}
+          </div>
+        </>
       )}
 
-      <p><strong>Изображения:</strong></p>
-      <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
-        {images.map((img) => (
-          <div key={img.id} style={{
-            border: img.is_main ? "2px solid green" : "1px solid #ccc",
-            borderRadius: "8px",
-            padding: "0.5rem",
-            textAlign: "center"
-          }}>
-            <img
-              src={getImageUrl(img)}
-              alt=""
-              style={{ width: "120px", height: "100px", objectFit: "cover", borderRadius: "4px" }}
-            />
-            {img.is_main && <p style={{ fontSize: "0.75rem", color: "green" }}>Главное</p>}
-          </div>
-        ))}
-      </div>
-
       <br />
-      <button onClick={() => navigate(`/admin/edit-product/${product.id}`)}>Редактировать</button>{" "}
+      <button onClick={() => navigate(`/admin/edit-product/${productId}`)}>
+        Редактировать
+      </button>{" "}
       <button onClick={() => navigate(-1)}>Назад</button>
     </div>
   );
