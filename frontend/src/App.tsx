@@ -14,7 +14,7 @@ import UserOrdersPage from "./pages/UserOrdersPage";
 import AllOrdersPage from "./pages/AllOrdersPage";
 import AdminPanel from "./pages/AdminPanel";
 import CategoryAttributeManager from "./pages/CategoryAttributeManager";
-import CategoryManager from "./pages/CategoryManager"; // ✅ Новая страница
+import CategoryManager from "./pages/CategoryManager";
 
 function App() {
   const { user } = useAuth();
@@ -28,34 +28,115 @@ function App() {
 
         {/* Основные страницы */}
         <Route path="/products" element={<ProductList />} />
-        <Route path="/products/:id" element={<ProductDetail />} />
+        <Route path="/products/:productId" element={<ProductDetail />} />
 
         {/* Создание продукта — только для суперпользователя */}
-        <Route path="/products/create" element={user?.is_superuser ? <ProductForm /> : <Navigate to="/products" replace />} />
+        <Route
+          path="/products/create"
+          element={
+            user?.is_superuser ? (
+              <ProductForm />
+            ) : (
+              <Navigate to="/products" replace />
+            )
+          }
+        />
 
         {/* Редактирование продукта — только для суперпользователя */}
-        <Route path="/admin/edit-product/:productId" element={user?.is_superuser ? <ProductForm /> : <Navigate to="/products" replace />} />
+        <Route
+          path="/admin/edit-product/:productId"
+          element={
+            user?.is_superuser ? (
+              <ProductForm />
+            ) : (
+              <Navigate to="/products" replace />
+            )
+          }
+        />
 
         {/* Админ-список продуктов (с кнопками редактирования) */}
-        <Route path="/admin/products" element={user?.is_superuser ? <ProductList /> : <Navigate to="/products" replace />} />
+        <Route
+          path="/admin/products"
+          element={
+            user?.is_superuser ? (
+              <ProductList />
+            ) : (
+              <Navigate to="/products" replace />
+            )
+          }
+        />
 
         {/* Управление пользователями */}
-        <Route path="/users" element={user?.is_superuser ? <UserList /> : <Navigate to="/products" replace />} />
+        <Route
+          path="/users"
+          element={
+            user?.is_superuser ? (
+              <UserList />
+            ) : (
+              <Navigate to="/products" replace />
+            )
+          }
+        />
 
         {/* Заказы конкретного пользователя */}
-        <Route path="/orders/user/:id" element={user?.is_superuser ? <UserOrdersPage /> : <Navigate to="/products" replace />} />
+        <Route
+          path="/orders/user/:id"
+          element={
+            user?.is_superuser ? (
+              <UserOrdersPage />
+            ) : (
+              <Navigate to="/products" replace />
+            )
+          }
+        />
 
         {/* Все заказы */}
-        <Route path="/orders/all" element={user?.is_superuser ? <AllOrdersPage /> : <Navigate to="/products" replace />} />
+        <Route
+          path="/orders/all"
+          element={
+            user?.is_superuser ? (
+              <AllOrdersPage />
+            ) : (
+              <Navigate to="/products" replace />
+            )
+          }
+        />
 
         {/* Панель администратора */}
-        <Route path="/admin" element={user?.is_superuser ? <AdminPanel /> : <Navigate to="/products" replace />} />
+        <Route
+          path="/admin"
+          element={
+            user?.is_superuser ? (
+              <AdminPanel />
+            ) : (
+              <Navigate to="/products" replace />
+            )
+          }
+        />
 
         {/* Управление категориями */}
-        <Route path="/admin/category-manager" element={user?.is_superuser ? <CategoryManager /> : <Navigate to="/products" replace />} />
+        <Route
+          path="/admin/category-manager"
+          element={
+            user?.is_superuser ? (
+              <CategoryManager />
+            ) : (
+              <Navigate to="/products" replace />
+            )
+          }
+        />
 
         {/* Управление атрибутами категорий */}
-        <Route path="/admin/category-attributes/:categoryId?" element={user?.is_superuser ? <CategoryAttributeManager /> : <Navigate to="/products" replace />} />
+        <Route
+          path="/admin/category-attributes/:categoryId?"
+          element={
+            user?.is_superuser ? (
+              <CategoryAttributeManager />
+            ) : (
+              <Navigate to="/products" replace />
+            )
+          }
+        />
 
         {/* Аутентификация */}
         <Route path="/login" element={<Login />} />
@@ -67,7 +148,12 @@ function App() {
         <Route path="/orders" element={<OrdersPage />} />
 
         {/* 404 */}
-        <Route path="*" element={<div style={{ padding: "2rem" }}>404 – Страница не найдена</div>} />
+        <Route
+          path="*"
+          element={
+            <div style={{ padding: "2rem" }}>404 – Страница не найдена</div>
+          }
+        />
       </Routes>
     </>
   );
