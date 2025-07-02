@@ -58,3 +58,16 @@ sudo apt install nodejs npm
 File → Settings → Languages & Frameworks → TypeScript
 выбрать add interpreter и вписать там то что выдаст на команду which node
 Это все очень примерно, и позже нужно сделать нормальную точную инструкцию
+
+
+locust -f locustfile.py \
+  --headless \
+  --host=http://localhost:8000 \
+  --run-time 1m \
+  --csv=report
+
+
+locust -f locustfile.py --host=http://localhost:8000 --headless --run-time 1m --csv=report_cart_safe
+locust -f locustfile.py --headless --host=http://localhost:8000 --run-time 1m --csv=report_safe
+locust -f locustfile.py --host=http://localhost:8000 --headless --run-time 1m --csv=report
+

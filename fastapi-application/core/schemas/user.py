@@ -14,7 +14,6 @@ class UserBase(BaseModel):
 
 class UserCreate(UserBase):
     password: str  # 👈 пароль от пользователя
-    email: EmailStr
 
 
 class UserRead(UserBase):
