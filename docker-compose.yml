@@ -1,3 +1,5 @@
+version: '3.8'
+
 services:
   rabbitmq:
     image: rabbitmq:3-management-alpine
@@ -57,7 +59,28 @@ services:
     ports:
       - "5050:80"
 
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/alerts.rules.yml:/etc/prometheus/alerts.rules.yml:ro
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana-storage:/var/lib/grafana
+      - ./monitoring/grafana_dashboards:/var/lib/grafana/dashboards
 
 volumes:
   pgdata:
   rabbitmq-data:
+  grafana-storage:

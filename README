@@ -67,7 +67,7 @@ locust -f locustfile.py \
   --csv=report
 
 
-locust -f locustfile.py --host=http://localhost:8000 --headless --run-time 1m --csv=report_cart_safe
-locust -f locustfile.py --headless --host=http://localhost:8000 --run-time 1m --csv=report_safe
-locust -f locustfile.py --host=http://localhost:8000 --headless --run-time 1m --csv=report
+
+locust -f locust/locustfile.py --host=http://localhost:8000 --headless --run-time 1m --csv=locust/results/report
+запускать из  fastapi-application
 

@@ -10,6 +10,8 @@ from fastapi.openapi.docs import (
 from fastapi.responses import ORJSONResponse
 from starlette.responses import HTMLResponse
 
+from prometheus_fastapi_instrumentator import Instrumentator
+
 from core import broker
 from core.models import db_helper
 
@@ -59,4 +61,8 @@ def create_app(
     )
     if create_custom_static_urls:
         register_static_docs_routes(app)
+
+    instrumentator = Instrumentator()
+    instrumentator.instrument(app).expose(app)  # добавляет эндпоинт /metrics
+
     return app
