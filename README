@@ -13,6 +13,10 @@ source /home/sergeyl/.cache/pypoetry/virtualenvs/non-package-mode-zzLelB62-py3.1
       test: [ "CMD", "pg_isready", "-U", "user", "-d", "shop" ]
 
 
+нужно заполнить таблицу с категориями, пока вручную, исходя из того что в папке media
+
+и  в таблицу с путями картинок ввести такие пути в формате media/products/phones/iphone15/62c18c25ae1f406b8e68f96c8cf62b1d.jpg
+
 
 docker compose up -d
 gunicorn main:main_app --workers 4 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000
