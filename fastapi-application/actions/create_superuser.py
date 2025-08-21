@@ -17,17 +17,17 @@ from crud import users as users_crud
 from core.security import hash_password
 
 # Значения по умолчанию из переменных окружения или фиксированные
-DEFAULT_EMAIL = getenv("DEFAULT_EMAIL", "admin4@example.com")
-DEFAULT_USERNAME = getenv("DEFAULT_USERNAME", "admin4")
+DEFAULT_EMAIL = getenv("DEFAULT_EMAIL", "admin@example.com")
+DEFAULT_USERNAME = getenv("DEFAULT_USERNAME", "admin")
 DEFAULT_PASSWORD = getenv("DEFAULT_PASSWORD", "securepassword123")
-DEFAULT_PHONE_NUMBER = getenv("DEFAULT_PHONE_NUMBER", "1234567894")
+DEFAULT_PHONE_NUMBER = getenv("DEFAULT_PHONE_NUMBER", "1234567890")
 DEFAULT_IS_SUPERUSER = True
 
 
 async def create_superuser(
         email: str = DEFAULT_EMAIL,
-        username: str = DEFAULT_USERNAME,
-        password: str = DEFAULT_PASSWORD,
+        username: str = 'admin',
+        password: str = 'admin',
         phone_number: str = DEFAULT_PHONE_NUMBER,
         is_superuser: bool = DEFAULT_IS_SUPERUSER,
 ) -> User:

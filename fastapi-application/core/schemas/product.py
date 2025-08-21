@@ -38,7 +38,7 @@ class ProductAttributeReadSuperuser(ProductAttributeReadBase):
 
 class ProductBase(BaseModel):
     title: str
-    sku: str
+    #sku: str
     description: Optional[str] = None
 
 
@@ -57,7 +57,7 @@ class ProductCreate(ProductBaseExtended):
 
 class ProductUpdate(ProductBaseExtended):
     title: Optional[str] = None
-    sku: Optional[str] = None
+    #sku: Optional[str] = None
     attributes: Optional[List[ProductAttributeInput]] = None
 
     model_config = ConfigDict(json_schema_extra={"example": {}})

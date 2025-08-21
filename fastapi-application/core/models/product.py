@@ -10,7 +10,7 @@ class Product(IntIdPkMixin, Base):
     __tablename__ = "products"
 
     title: Mapped[str] = mapped_column(String, nullable=False)
-    sku: Mapped[str] = mapped_column(String, unique=True, nullable=False)
+    #sku: Mapped[str] = mapped_column(String, unique=True, nullable=False)
 
     retail_price: Mapped[int | None] = mapped_column(Integer, nullable=True)
     opt_price: Mapped[int | None] = mapped_column(Integer, nullable=True)

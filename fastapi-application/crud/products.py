@@ -65,11 +65,11 @@ async def get_product_by_id(session: AsyncSession, product_id: int) -> Product |
     return result.scalar_one_or_none()
 
 async def create_product(session: AsyncSession, product_create: ProductCreate) -> Product:
-    result = await session.execute(
-        select(Product).where(Product.sku == product_create.sku)
-    )
-    if result.scalar_one_or_none():
-        raise HTTPException(status_code=400, detail=f"SKU '{product_create.sku}' уже существует")
+#    result = await session.execute(
+#        select(Product).where(Product.sku == product_create.sku)
+#    )
+#    if result.scalar_one_or_none():
+#        raise HTTPException(status_code=400, detail=f"SKU '{product_create.sku}' уже существует")
 
     # 🔒 Валидация уникальности атрибутов
     validate_unique_attributes(product_create.attributes)
@@ -118,12 +118,12 @@ async def update_product(session: AsyncSession, product_id: int, update_data: di
     if not product:
         raise HTTPException(status_code=404, detail="Продукт не найден")
 
-    if "sku" in update_data:
-        existing = await session.execute(
-            select(Product).where(Product.sku == update_data["sku"], Product.id != product_id)
-        )
-        if existing.scalar_one_or_none():
-            raise HTTPException(status_code=400, detail=f"SKU '{update_data['sku']}' уже существует")
+    #if "sku" in update_data:
+    #    existing = await session.execute(
+    #        select(Product).where(Product.sku == update_data["sku"], Product.id != product_id)
+    #    )
+    #    if existing.scalar_one_or_none():
+    #        raise HTTPException(status_code=400, detail=f"SKU '{update_data['sku']}' уже существует")
 
     attributes = update_data.pop("attributes", None)
 

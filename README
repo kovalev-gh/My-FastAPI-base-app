@@ -1,6 +1,8 @@
 poetry install
 poetry env activate
-source /home/sergeyl/.cache/pypoetry/virtualenvs/non-package-mode-ufyuGeAO-py3.12/bin/activate
+source /home/sergeyl/.cache/pypoetry/virtualenvs/non-package-mode-zzLelB62-py3.12/bin/activate
+
+
 меняю порт  в docker-compose.yml maildev с 8080 на 1080 потому что изначально в docker-compose.yml этот номер порта в двух местах
 меняю порт  в docker-compose.yml pg с 5432 на 5433 потому что у меня постгрес установлен локально и возможно из-за это в логах при выполнении команды docker compose up -d возникает ошибка pg-1       | 2025-05-11 13:54:04.886 UTC [79] FATAL:  role "root" does not exist
 создаю файл .env и копирую в него содержимое .env.template
@@ -39,6 +41,7 @@ uvicorn main:main_app --reload
 
 python actions/create_superuser.py
 
+npm install
 npm run dev
 
 install nodejs npm
