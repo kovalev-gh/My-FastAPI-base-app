@@ -34,7 +34,7 @@ docker compose down
 docker compose up -d
 docker compose logs
 
-#test commit
+#new test commit
 alembic upgrade head
 alembic revision --autogenerate -m "text"
 
