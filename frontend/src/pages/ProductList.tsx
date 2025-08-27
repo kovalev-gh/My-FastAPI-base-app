@@ -3,10 +3,21 @@ import { Link } from "react-router-dom";
 import {
   getProducts,
   getProductImages,
+  searchProducts,
 } from "../api/products";
 import { getCategories } from "../api/categories";
 import { addToCart } from "../api/cart";
 import { useAuth } from "../context/AuthContext";
+
+// маленький хук для дебаунса
+function useDebouncedValue<T>(value: T, delay = 400) {
+  const [debounced, setDebounced] = useState(value);
+  useEffect(() => {
+    const id = setTimeout(() => setDebounced(value), delay);
+    return () => clearTimeout(id);
+  }, [value, delay]);
+  return debounced;
+}
 
 export default function ProductList() {
   const { user } = useAuth();
@@ -14,37 +25,61 @@ export default function ProductList() {
   const [images, setImages] = useState<Record<number, string>>({});
   const [categories, setCategories] = useState<any[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
+  const [query, setQuery] = useState(""); // ← поисковая строка
+  const debouncedQuery = useDebouncedValue(query, 400);
   const [loading, setLoading] = useState(true);
 
   const API_URL = "http://localhost:8000";
 
+  // грузим категории
   useEffect(() => {
-    const loadCategories = async () => {
+    (async () => {
       const cats = await getCategories();
       setCategories(cats);
-    };
-    loadCategories();
+    })();
   }, []);
 
+  // грузим товары (обычная выдача или поиск по ES)
   useEffect(() => {
-    const loadProducts = async () => {
+    const load = async () => {
       setLoading(true);
       try {
-        const response = await getProducts();
-        const all = Array.isArray(response) ? response : response.items || [];
-        const filtered = selectedCategory
-          ? all.filter((p) => p.category_id === selectedCategory)
-          : all;
-        setProducts(filtered);
+        let data: { items: any[]; total: number };
+
+        // Если есть запрос или установлен фильтр по категории — используем поиск ES.
+        // Иначе — дефолтная выдача (как раньше).
+        if (debouncedQuery.trim() !== "" || selectedCategory !== null) {
+          data = await searchProducts({
+            q: debouncedQuery.trim(),
+            category_id: selectedCategory ?? undefined,
+            limit: 50, // можно крутить
+            offset: 0,
+          });
+        } else {
+          data = await getProducts(50, 0);
+        }
+
+        const all = Array.isArray(data) ? data : data.items || [];
+        setProducts(all);
+
+        // грузим главные картинки (параллельно и без пустых src)
+        const imageEntries = await Promise.all(
+          all.map(async (product: any) => {
+            try {
+              const imgs = await getProductImages(product.id);
+              const main = imgs.find((i: any) => i.is_main);
+              if (!main) return null; // ← НЕ возвращаем пустые строки
+              const fixed = main.url.replace("/api/v1media", "/media");
+              return { id: product.id, url: `${API_URL}${fixed}` };
+            } catch {
+              return null;
+            }
+          })
+        );
 
         const imageMap: Record<number, string> = {};
-        for (const product of filtered) {
-          const imgs = await getProductImages(product.id);
-          const main = imgs.find((i: any) => i.is_main);
-          if (main) {
-            const fixed = main.url.replace("/api/v1media", "/media");
-            imageMap[product.id] = `${API_URL}${fixed}`;
-          }
+        for (const entry of imageEntries) {
+          if (entry) imageMap[entry.id] = entry.url; // ← только если есть URL
         }
         setImages(imageMap);
       } catch (err) {
@@ -53,8 +88,8 @@ export default function ProductList() {
         setLoading(false);
       }
     };
-    loadProducts();
-  }, [selectedCategory]);
+    load();
+  }, [debouncedQuery, selectedCategory]);
 
   const handleAddToCart = async (productId: number) => {
     try {
@@ -69,21 +104,39 @@ export default function ProductList() {
     <div style={{ padding: "2rem" }}>
       <h2>Список товаров</h2>
 
-      <div style={{ marginBottom: "1rem" }}>
-        <label>Категория: </label>
-        <select
-          value={selectedCategory ?? ""}
-          onChange={(e) =>
-            setSelectedCategory(e.target.value ? Number(e.target.value) : null)
-          }
-        >
-          <option value="">Все</option>
-          {categories.map((cat: any) => (
-            <option key={cat.id} value={cat.id}>
-              {cat.name}
-            </option>
-          ))}
-        </select>
+      <div style={{ display: "flex", gap: 12, marginBottom: "1rem", flexWrap: "wrap" }}>
+        {/* Поисковая строка */}
+        <input
+          type="search"
+          placeholder="Поиск…"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          style={{
+            padding: "0.5rem 0.75rem",
+            minWidth: 260,
+            border: "1px solid #ccc",
+            borderRadius: 6,
+          }}
+        />
+
+        {/* Фильтр по категории */}
+        <label style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <span>Категория:</span>
+          <select
+            value={selectedCategory ?? ""}
+            onChange={(e) =>
+              setSelectedCategory(e.target.value ? Number(e.target.value) : null)
+            }
+            style={{ padding: "0.35rem 0.5rem", borderRadius: 6 }}
+          >
+            <option value="">Все</option>
+            {categories.map((cat: any) => (
+              <option key={cat.id} value={cat.id}>
+                {cat.name}
+              </option>
+            ))}
+          </select>
+        </label>
       </div>
 
       {loading ? (
@@ -92,64 +145,83 @@ export default function ProductList() {
         <p>Нет доступных товаров</p>
       ) : (
         <ul style={{ listStyle: "none", padding: 0 }}>
-          {products.map((p) => (
-            <li
-              key={p.id}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                marginBottom: "1rem",
-                borderBottom: "1px solid #ccc",
-                paddingBottom: "1rem",
-              }}
-            >
-              <Link
-                to={`/products/${p.id}`}
+          {products.map((p) => {
+            const url = images[p.id]; // ← если нет ключа — undefined
+            return (
+              <li
+                key={p.id}
                 style={{
                   display: "flex",
                   alignItems: "center",
-                  textDecoration: "none",
-                  color: "inherit",
-                  flexGrow: 1,
+                  marginBottom: "1rem",
+                  borderBottom: "1px solid #ccc",
+                  paddingBottom: "1rem",
                 }}
               >
-                <img
-                  src={images[p.id]}
-                  alt={p.title}
+                <Link
+                  to={`/products/${p.id}`}
                   style={{
-                    width: 64,
-                    height: 64,
-                    objectFit: "cover",
-                    marginRight: 12,
-                    border: "1px solid #ddd",
+                    display: "flex",
+                    alignItems: "center",
+                    textDecoration: "none",
+                    color: "inherit",
+                    flexGrow: 1,
                   }}
-                />
-                <div>
-                  <strong>{p.title}</strong>
-                  <div>{p.retail_price ?? "-"} ₽</div>
-                </div>
-              </Link>
+                >
+                  {url ? (
+                    <img
+                      src={url}
+                      alt={p.title}
+                      style={{
+                        width: 64,
+                        height: 64,
+                        objectFit: "cover",
+                        marginRight: 12,
+                        border: "1px solid #ddd",
+                        background: "#f7f7f7",
+                      }}
+                    />
+                  ) : (
+                    // Плейсхолдер без src — чтобы не было предупреждения
+                    <div
+                      aria-hidden="true"
+                      style={{
+                        width: 64,
+                        height: 64,
+                        marginRight: 12,
+                        border: "1px solid #ddd",
+                        background: "#f7f7f7",
+                      }}
+                    />
+                  )}
 
-              <div>
-                <button onClick={() => handleAddToCart(p.id)}>🛒 В корзину</button>
-                {user?.is_superuser && (
-                  <Link
-                    to={`/admin/edit-product/${p.id}`}
-                    style={{
-                      marginLeft: "0.5rem",
-                      padding: "0.2rem 0.5rem",
-                      border: "1px solid #888",
-                      borderRadius: 4,
-                      textDecoration: "none",
-                    }}
-                    title="Редактировать"
-                  >
-                    ✏️
-                  </Link>
-                )}
-              </div>
-            </li>
-          ))}
+                  <div>
+                    <strong>{p.title}</strong>
+                    <div>{p.retail_price ?? "-"} ₽</div>
+                  </div>
+                </Link>
+
+                <div>
+                  <button onClick={() => handleAddToCart(p.id)}>🛒 В корзину</button>
+                  {user?.is_superuser && (
+                    <Link
+                      to={`/admin/edit-product/${p.id}`}
+                      style={{
+                        marginLeft: "0.5rem",
+                        padding: "0.2rem 0.5rem",
+                        border: "1px solid #888",
+                        borderRadius: 4,
+                        textDecoration: "none",
+                      }}
+                      title="Редактировать"
+                    >
+                      ✏️
+                    </Link>
+                  )}
+                </div>
+              </li>
+            );
+          })}
         </ul>
       )}
     </div>

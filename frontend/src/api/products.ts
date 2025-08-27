@@ -19,6 +19,32 @@ export async function getProducts(limit = 10, offset = 0) {
   return { items: [], total: 0 };
 }
 
+// Поиск товаров через Elasticsearch
+export async function searchProducts({
+  q = "",
+  category_id,
+  limit = 10,
+  offset = 0,
+}: {
+  q?: string;
+  category_id?: number | null;
+  limit?: number;
+  offset?: number;
+}) {
+  const params: Record<string, any> = { q, limit, offset };
+  if (category_id != null) params.category_id = category_id;
+
+  const response = await api.get("/products/search", { params });
+  const data = response.data;
+
+  if (data && Array.isArray(data.items)) {
+    return { items: data.items, total: data.total };
+  }
+
+  console.error("❌ Неправильный формат ответа поиска:", data);
+  return { items: [], total: 0 };
+}
+
 // Получение товара по ID
 export async function getProductById(productId: number | string) {
   try {
