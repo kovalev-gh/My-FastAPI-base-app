@@ -70,7 +70,6 @@ services:
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
 
-
   grafana:
     image: grafana/grafana:latest
     container_name: grafana
@@ -80,7 +79,46 @@ services:
       - grafana-storage:/var/lib/grafana
       - ./monitoring/grafana_dashboards:/var/lib/grafana/dashboards
 
+  # 🔎 Elasticsearch (для поиска)
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.14.1
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false   # для локалки; в проде включите безопасность
+      - ES_JAVA_OPTS=-Xms1g -Xmx1g
+    ports:
+      - "9200:9200"
+    volumes:
+      - esdata:/usr/share/elasticsearch/data
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:9200 >/dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # 🧭 Kibana (удобно смотреть индекс и делать запросы)
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.14.1
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    ports:
+      - "5601:5601"
+    volumes:
+      - kibanadata:/usr/share/kibana/data
+
 volumes:
   pgdata:
   rabbitmq-data:
   grafana-storage:
+  esdata:
+  kibanadata:
