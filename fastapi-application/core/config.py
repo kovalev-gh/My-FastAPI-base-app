@@ -1,11 +1,17 @@
 import logging
+import os
 from typing import Literal
-from pydantic import AmqpDsn, BaseModel, PostgresDsn, EmailStr, Field
+from pydantic import AmqpDsn, BaseModel, PostgresDsn, EmailStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 LOG_DEFAULT_FORMAT = (
     "[%(asctime)s.%(msecs)03d] %(module)10s:%(lineno)-3d %(levelname)-7s - %(message)s"
 )
+
+
+def in_docker() -> bool:
+    """Определяет, выполняется ли код внутри контейнера Docker"""
+    return os.path.exists("/.dockerenv")
 
 
 class RunConfig(BaseModel):
@@ -55,10 +61,9 @@ class CeleryConfig(BaseModel):
     broker_url_docker: AmqpDsn
     result_backend: str = "rpc://"
 
-    def broker_url(self, app_env: str) -> str:
-        return str(
-            self.broker_url_docker if app_env == "docker" else self.broker_url_local
-        )
+    @property
+    def broker_url(self) -> str:
+        return str(self.broker_url_docker if in_docker() else self.broker_url_local)
 
 
 class DatabaseConfig(BaseModel):
@@ -77,14 +82,9 @@ class DatabaseConfig(BaseModel):
         "pk": "pk_%(table_name)s",
     }
 
-    def get_url(self, app_env: str) -> str:
-        return str(self.url_docker if app_env == "docker" else self.url_local)
-
     @property
     def url(self) -> str:
-        import os
-        app_env = os.getenv("APP_ENV", "local")
-        return str(self.url_docker if app_env == "docker" else self.url_local)
+        return str(self.url_docker if in_docker() else self.url_local)
 
 
 class SmtpConfig(BaseModel):
@@ -116,9 +116,6 @@ class Settings(BaseSettings):
         case_sensitive=False,
     )
 
-    # читается напрямую из переменной APP_ENV
-    app_env: str = Field("local", alias="APP_ENV")
-
     run: RunConfig = RunConfig()
     gunicorn: GunicornConfig = GunicornConfig()
     logging: LoggingConfig = LoggingConfig()
@@ -133,11 +130,11 @@ class Settings(BaseSettings):
     # Удобные алиасы
     @property
     def db_url(self) -> str:
-        return self.db.get_url(self.app_env)
+        return self.db.url
 
     @property
     def celery_broker_url(self) -> str:
-        return self.celery.broker_url(self.app_env)
+        return self.celery.broker_url
 
 
 settings = Settings()

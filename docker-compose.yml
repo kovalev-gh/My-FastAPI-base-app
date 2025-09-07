@@ -38,17 +38,9 @@ services:
     build: .
     working_dir: /app
     environment:
-      # корректные импорты для приложения
       - PYTHONPATH=/app/fastapi-application
-      # явно указываем режим docker
-      - APP_ENV=docker
-      # брокер для контейнера
-      - APP_CONFIG__CELERY__BROKER_URL_DOCKER=amqp://guest:guest@rabbitmq:5672//
-      # база для контейнера
-      - APP_CONFIG__DB__URL_DOCKER=postgresql+asyncpg://user:password@pg:5432/shop
     env_file:
       - ./fastapi-application/.env
-      #- ./fastapi-application/.env.template
     command: >
       celery -A core.celery_app.celery_app worker -l info -Q reports
     volumes:
