@@ -1,6 +1,6 @@
 import logging
 from typing import Literal
-from pydantic import AmqpDsn, BaseModel, PostgresDsn, EmailStr
+from pydantic import AmqpDsn, BaseModel, PostgresDsn, EmailStr, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 LOG_DEFAULT_FORMAT = (
@@ -38,6 +38,7 @@ class ApiV1Prefix(BaseModel):
     carts: str = "/carts"
     categories: str = "/categories"
     attributes: str = "/attributes"
+    reports: str = "/reports"
 
 
 class ApiPrefix(BaseModel):
@@ -49,8 +50,20 @@ class TaskiqConfig(BaseModel):
     url: AmqpDsn = "amqp://guest:guest@localhost:5672//"
 
 
+class CeleryConfig(BaseModel):
+    broker_url_local: AmqpDsn
+    broker_url_docker: AmqpDsn
+    result_backend: str = "rpc://"
+
+    def broker_url(self, app_env: str) -> str:
+        return str(
+            self.broker_url_docker if app_env == "docker" else self.broker_url_local
+        )
+
+
 class DatabaseConfig(BaseModel):
-    url: PostgresDsn
+    url_local: PostgresDsn
+    url_docker: PostgresDsn
     echo: bool = False
     echo_pool: bool = False
     pool_size: int = 50
@@ -63,6 +76,15 @@ class DatabaseConfig(BaseModel):
         "fk": "fk_%(table_name)s_%(column_0_name)s_%(referred_table_name)s",
         "pk": "pk_%(table_name)s",
     }
+
+    def get_url(self, app_env: str) -> str:
+        return str(self.url_docker if app_env == "docker" else self.url_local)
+
+    @property
+    def url(self) -> str:
+        import os
+        app_env = os.getenv("APP_ENV", "local")
+        return str(self.url_docker if app_env == "docker" else self.url_local)
 
 
 class SmtpConfig(BaseModel):
@@ -94,15 +116,28 @@ class Settings(BaseSettings):
         case_sensitive=False,
     )
 
+    # читается напрямую из переменной APP_ENV
+    app_env: str = Field("local", alias="APP_ENV")
+
     run: RunConfig = RunConfig()
     gunicorn: GunicornConfig = GunicornConfig()
     logging: LoggingConfig = LoggingConfig()
     api: ApiPrefix = ApiPrefix()
     taskiq: TaskiqConfig = TaskiqConfig()
+    celery: CeleryConfig
     db: DatabaseConfig
     smtp: SmtpConfig
     frontend: FrontendConfig
     security: SecurityConfig
+
+    # Удобные алиасы
+    @property
+    def db_url(self) -> str:
+        return self.db.get_url(self.app_env)
+
+    @property
+    def celery_broker_url(self) -> str:
+        return self.celery.broker_url(self.app_env)
 
 
 settings = Settings()

@@ -16,6 +16,8 @@ from .categories import router as categories_router
 
 from .attributes import router as attributes_router
 
+from .reports import router as reports_router
+
 router = APIRouter(
     prefix=settings.api.v1.prefix,
 )
@@ -52,4 +54,9 @@ router.include_router(
 router.include_router(
     attributes_router,
     prefix=settings.api.v1.attributes,
+)
+
+router.include_router(
+    reports_router,
+    prefix=settings.api.v1.reports,
 )

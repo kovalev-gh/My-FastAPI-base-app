@@ -44,6 +44,12 @@ docker-compose down
 docker-compose up --build
 uvicorn main:main_app --reload
 
+docker compose up -d --build celery
+
+docker compose logs -f celery
+
+sudo ss -ltnp | grep 8000
+
 python actions/create_superuser.py
 
 npm install
