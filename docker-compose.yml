@@ -52,6 +52,7 @@ services:
     working_dir: /app
     environment:
       - PYTHONPATH=/app/fastapi-application
+      - DOCKER=1   # ✅ теперь Celery всегда будет использовать docker-брокер
     env_file:
       - ./fastapi-application/.env
     command: >

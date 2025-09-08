@@ -1,6 +1,8 @@
 import logging
+import os
 from typing import Literal
-from pydantic import AmqpDsn, BaseModel, PostgresDsn, EmailStr, RedisDsn
+
+from pydantic import AmqpDsn, BaseModel, PostgresDsn, EmailStr, RedisDsn, computed_field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 LOG_DEFAULT_FORMAT = (
@@ -38,6 +40,7 @@ class ApiV1Prefix(BaseModel):
     carts: str = "/carts"
     categories: str = "/categories"
     attributes: str = "/attributes"
+    reports: str = "/reports"
 
 
 class ApiPrefix(BaseModel):
@@ -53,6 +56,15 @@ class CeleryConfig(BaseModel):
     broker_url_local: AmqpDsn
     broker_url_docker: AmqpDsn
     result_backend: str = "rpc://"
+
+    @computed_field
+    @property
+    def broker_url(self) -> str:
+        """Автоматически выбирает broker_url в зависимости от окружения"""
+        import os
+        if os.getenv("DOCKER", "0") in {"1", "true", "True"}:
+            return str(self.broker_url_docker)
+        return str(self.broker_url_local)
 
 
 class DatabaseConfig(BaseModel):
@@ -70,6 +82,14 @@ class DatabaseConfig(BaseModel):
         "fk": "fk_%(table_name)s_%(column_0_name)s_%(referred_table_name)s",
         "pk": "pk_%(table_name)s",
     }
+
+    @computed_field
+    @property
+    def url(self) -> str:
+        """Выбирает правильный DSN (docker/local)"""
+        if os.getenv("DOCKER", "0") in {"1", "true", "True"}:
+            return str(self.url_docker)
+        return str(self.url_local)
 
 
 class SmtpConfig(BaseModel):

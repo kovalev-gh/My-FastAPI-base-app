@@ -4,7 +4,7 @@ from core.config import settings
 # Создаём экземпляр Celery
 celery_app = Celery(
     "worker",
-    broker=settings.celery_broker_url,        # ✅ автоматически выбирает local/docker
+    broker=settings.celery.broker_url,      # ✅ автоматически выбирает local/docker
     backend=settings.celery.result_backend,   # ✅ backend для результатов
     include=["tasks.reports"],                # ✅ регистрируем модуль с тасками
 )

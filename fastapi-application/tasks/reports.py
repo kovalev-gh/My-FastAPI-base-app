@@ -21,7 +21,7 @@ async def _generate_reports():
     Это предотвращает конфликт event loop между Celery и asyncpg.
     """
     # 1. создаём движок (async)
-    engine = create_async_engine(settings.db_url, echo=settings.db.echo)
+    engine = create_async_engine(settings.db.url, echo=settings.db.echo)
     Session = async_sessionmaker(engine, expire_on_commit=False)
 
     # 2. открываем сессию
