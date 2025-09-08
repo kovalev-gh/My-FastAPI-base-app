@@ -49,6 +49,7 @@ docker compose up -d --build celery
 docker compose logs -f celery
 
 sudo ss -ltnp | grep 8000
+kill -9 3063683 #вместо цифр указать необходимый pid
 
 python actions/create_superuser.py
 

@@ -1,4 +1,3 @@
-# core/cache/products_cache.py
 import asyncio
 import json
 import time
@@ -188,13 +187,13 @@ async def _read_aside_cached(
 # ПАРАМЕТРЫ ДЛЯ ТОВАРА
 # =========================
 
-PRODUCT_TTL = int(settings.CACHE_PRODUCT_TTL)           # по умолчанию 30 мин
+PRODUCT_TTL = settings.redis.product_ttl
 PRODUCT_RACE = max(1, min(300, PRODUCT_TTL // 2))       # до 5 минут race-окно
 
-PRICE_TTL = int(settings.CACHE_PRICE_TTL)               # по умолчанию 30 сек
+PRICE_TTL = settings.redis.price_ttl
 PRICE_RACE = max(1, min(10, max(1, PRICE_TTL // 2)))    # до 10 сек race-окно
 
-LOCK_TTL = int(settings.CACHE_LOCK_TTL)                 # по умолчанию 30 сек
+LOCK_TTL = settings.redis.lock_ttl
 
 
 # =========================
@@ -209,7 +208,7 @@ async def get_product_base(product_id: int, session: AsyncSession) -> dict | Non
         p = await _load_product_base_from_db(product_id, session)
         if not p:
             return None
-        return serialize_product_base(p)  # возвращает ProductBaseCache (Pydantic)
+        return serialize_product_base(p)
 
     return await _read_aside_cached(
         key=key,
@@ -227,7 +226,7 @@ async def get_product_dynamic(product_id: int, session: AsyncSession) -> dict | 
         p = await _load_product_dynamic_from_db(product_id, session)
         if not p:
             return None
-        return serialize_product_dynamic(p)  # возвращает ProductDynamicCache (Pydantic)
+        return serialize_product_dynamic(p)
 
     return await _read_aside_cached(
         key=key,

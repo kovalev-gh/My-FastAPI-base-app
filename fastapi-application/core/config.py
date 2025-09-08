@@ -1,17 +1,11 @@
 import logging
-import os
 from typing import Literal
-from pydantic import AmqpDsn, BaseModel, PostgresDsn, EmailStr
+from pydantic import AmqpDsn, BaseModel, PostgresDsn, EmailStr, RedisDsn
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 LOG_DEFAULT_FORMAT = (
     "[%(asctime)s.%(msecs)03d] %(module)10s:%(lineno)-3d %(levelname)-7s - %(message)s"
 )
-
-
-def in_docker() -> bool:
-    """Определяет, выполняется ли код внутри контейнера Docker"""
-    return os.path.exists("/.dockerenv")
 
 
 class RunConfig(BaseModel):
@@ -44,7 +38,6 @@ class ApiV1Prefix(BaseModel):
     carts: str = "/carts"
     categories: str = "/categories"
     attributes: str = "/attributes"
-    reports: str = "/reports"
 
 
 class ApiPrefix(BaseModel):
@@ -60,10 +53,6 @@ class CeleryConfig(BaseModel):
     broker_url_local: AmqpDsn
     broker_url_docker: AmqpDsn
     result_backend: str = "rpc://"
-
-    @property
-    def broker_url(self) -> str:
-        return str(self.broker_url_docker if in_docker() else self.broker_url_local)
 
 
 class DatabaseConfig(BaseModel):
@@ -81,10 +70,6 @@ class DatabaseConfig(BaseModel):
         "fk": "fk_%(table_name)s_%(column_0_name)s_%(referred_table_name)s",
         "pk": "pk_%(table_name)s",
     }
-
-    @property
-    def url(self) -> str:
-        return str(self.url_docker if in_docker() else self.url_local)
 
 
 class SmtpConfig(BaseModel):
@@ -108,6 +93,14 @@ class SecurityConfig(BaseModel):
     refresh_token_expire_days: int = 7
 
 
+class RedisConfig(BaseModel):
+    url: RedisDsn = "redis://localhost:6379/0"
+    prefix: str = "shop:prod"       # префикс всех ключей кэша
+    product_ttl: int = 1800         # 30 минут для стабильной части карточки
+    price_ttl: int = 30             # 30 секунд для динамики (цены/остатки)
+    lock_ttl: int = 30              # 30 секунд для anti dog-pile lock
+
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=(".env.template", ".env"),
@@ -126,24 +119,7 @@ class Settings(BaseSettings):
     smtp: SmtpConfig
     frontend: FrontendConfig
     security: SecurityConfig
-
-    # ---------- Redis / Cache ----------
-    # Оставляю на корневом уровне настроек для простоты использования:
-    # settings.REDIS_URL, settings.CACHE_* — как в коде кэша.
-    REDIS_URL: str = "redis://localhost:6379/0"
-    CACHE_PREFIX: str = "shop:prod"     # префикс всех ключей кэша
-    CACHE_PRODUCT_TTL: int = 1800       # 30 минут для стабильной части карточки
-    CACHE_PRICE_TTL: int = 30           # 30 секунд для динамики (цены/остатки)
-    CACHE_LOCK_TTL: int = 30            # 30 секунд для anti dog-pile lock
-
-    # Удобные алиасы
-    @property
-    def db_url(self) -> str:
-        return self.db.url
-
-    @property
-    def celery_broker_url(self) -> str:
-        return self.celery.broker_url
+    redis: RedisConfig = RedisConfig()
 
 
 settings = Settings()

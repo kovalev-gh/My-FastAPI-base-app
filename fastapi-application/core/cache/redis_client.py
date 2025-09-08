@@ -1,9 +1,9 @@
-# core/cache/redis_client.py
 import redis.asyncio as aioredis
 from core.config import settings
 
 # глобальный клиент (ленивая инициализация)
 _redis: aioredis.Redis | None = None
+
 
 def init_redis() -> aioredis.Redis:
     """
@@ -13,11 +13,12 @@ def init_redis() -> aioredis.Redis:
     global _redis
     if _redis is None:
         _redis = aioredis.from_url(
-            settings.CACHE_URL,
+            settings.redis.url,  # читаем из нового RedisConfig
             encoding="utf-8",
             decode_responses=True,
         )
     return _redis
+
 
 def get_redis() -> aioredis.Redis:
     """
@@ -28,6 +29,7 @@ def get_redis() -> aioredis.Redis:
     if _redis is None:
         return init_redis()
     return _redis
+
 
 async def close_redis():
     """Закрывает соединение при завершении приложения."""
