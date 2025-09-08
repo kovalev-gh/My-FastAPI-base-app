@@ -127,6 +127,15 @@ class Settings(BaseSettings):
     frontend: FrontendConfig
     security: SecurityConfig
 
+    # ---------- Redis / Cache ----------
+    # Оставляю на корневом уровне настроек для простоты использования:
+    # settings.REDIS_URL, settings.CACHE_* — как в коде кэша.
+    REDIS_URL: str = "redis://localhost:6379/0"
+    CACHE_PREFIX: str = "shop:prod"     # префикс всех ключей кэша
+    CACHE_PRODUCT_TTL: int = 1800       # 30 минут для стабильной части карточки
+    CACHE_PRICE_TTL: int = 30           # 30 секунд для динамики (цены/остатки)
+    CACHE_LOCK_TTL: int = 30            # 30 секунд для anti dog-pile lock
+
     # Удобные алиасы
     @property
     def db_url(self) -> str:

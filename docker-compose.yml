@@ -34,6 +34,19 @@ services:
       timeout: 3s
       retries: 3
 
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
   celery:
     build: .
     working_dir: /app
@@ -49,6 +62,8 @@ services:
       rabbitmq:
         condition: service_healthy
       pg:
+        condition: service_healthy
+      redis:
         condition: service_healthy
 
   maildev:
@@ -118,9 +133,9 @@ services:
         hard: 65536
     healthcheck:
       test: ["CMD-SHELL", "curl -s http://localhost:9200/_cluster/health | grep -q '\"status\":\"yellow\"\\|\"status\":\"green\"'"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
+      interval: 15s
+      timeout: 10s
+      retries: 30
 
   kibana:
     image: docker.elastic.co/kibana/kibana:8.14.1
@@ -140,3 +155,4 @@ volumes:
   grafana-storage:
   esdata:
   kibanadata:
+  redis-data:

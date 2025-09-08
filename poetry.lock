@@ -2866,6 +2866,23 @@ files = [
 cffi = {version = "*", markers = "implementation_name == \"pypy\""}
 
 [[package]]
+name = "redis"
+version = "6.4.0"
+description = "Python client for Redis database and key-value store"
+optional = false
+python-versions = ">=3.9"
+groups = ["main"]
+files = [
+    {file = "redis-6.4.0-py3-none-any.whl", hash = "sha256:f0544fa9604264e9464cdf4814e7d4830f74b165d52f2a330a760a88dd248b7f"},
+    {file = "redis-6.4.0.tar.gz", hash = "sha256:b01bc7282b8444e28ec36b261df5375183bb47a07eb9c603f284e89cbc5ef010"},
+]
+
+[package.extras]
+hiredis = ["hiredis (>=3.2.0)"]
+jwt = ["pyjwt (>=2.9.0)"]
+ocsp = ["cryptography (>=36.0.1)", "pyopenssl (>=20.0.1)", "requests (>=2.31.0)"]
+
+[[package]]
 name = "requests"
 version = "2.32.4"
 description = "Python HTTP for Humans."
@@ -3807,4 +3824,4 @@ testing = ["coverage[toml]", "zope.event", "zope.testing"]
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.12"
-content-hash = "47f0a7d25635b704a66f14da350e35cb05086ac01569fb67eb8b5165345f5d95"
+content-hash = "a0f28f0a4422a8f9a2c01a56530aad05470e8bc185e80ed64c103f0710397797"
